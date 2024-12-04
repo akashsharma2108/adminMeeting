@@ -39,6 +39,7 @@ const timezones = ['GMT', 'IST', 'EST', 'PST']
 export default function AvailabilityTab() {
   const [availabilitySlots, setAvailabilitySlots] = useState<AvailabilitySlot[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [bisLoading, setbisLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
@@ -101,6 +102,7 @@ export default function AvailabilityTab() {
   }
 
   const handleSubmit = async () => {
+    setbisLoading(true)
     if (!csvFile && manualEntries.every(entry => !entry.date || !entry.startTime || !entry.endTime)) {
       setError('Please provide either a CSV file or manual entries.')
       toast({
@@ -163,6 +165,8 @@ export default function AvailabilityTab() {
         description: "Failed to add availability slots. Please try again.",
         variant: "destructive",
       })
+    } finally {
+      setbisLoading(false)
     }
   }
 
@@ -172,6 +176,7 @@ export default function AvailabilityTab() {
   }
 
   const handleEditSubmit = async () => {
+    setbisLoading(true)
     if (!editingSlot) return
 
     try {
@@ -205,10 +210,13 @@ export default function AvailabilityTab() {
         description: "Failed to update availability slot. Please try again.",
         variant: "destructive",
       })
+    } finally {
+      setbisLoading(false)
     }
   }
 
   const handleDelete = async (id: number) => {
+    setbisLoading(true)
     try {
       const response = await fetch(`https://adminmeeting.onrender.com/api/availabilityslots/${id}`, {
         method: 'DELETE',
@@ -230,7 +238,9 @@ export default function AvailabilityTab() {
         description: "Failed to delete availability slot. Please try again.",
         variant: "destructive",
       })
-    }
+    } finally {
+        setbisLoading(false)
+        }
   }
 
   if (isLoading) {
@@ -247,7 +257,7 @@ export default function AvailabilityTab() {
     <div className="p-6">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-semibold">Availability Slots</h2>
-        <Button onClick={() => setIsAddDialogOpen(true)}>Add Availability Slot</Button>
+          <Button onClick={() => setIsAddDialogOpen(true)}>Add Availability Slot</Button>
       </div>
 
       {availabilitySlots.length === 0 ? (
@@ -273,8 +283,12 @@ export default function AvailabilityTab() {
               <TableCell>{slot.endTime}</TableCell>
               <TableCell>{slot.timezone}</TableCell>
               <TableCell>
-                <Button variant="outline" className="mr-2" onClick={() => handleEdit(slot)}>Edit</Button>
-                <Button variant="destructive" onClick={() => handleDelete(slot.id)}>Delete</Button>
+              { bisLoading ?
+        <Loader2 className="h-8 w-8 animate-spin" />
+     : <Button variant="outline" className="mr-2" onClick={() => handleEdit(slot)}>Edit</Button>}
+      { bisLoading ?
+        <Loader2 className="h-8 w-8 animate-spin" />
+       :   <Button variant="destructive" onClick={() => handleDelete(slot.id)}>Delete</Button>}
               </TableCell>
             </TableRow>
           ))}
@@ -348,7 +362,9 @@ export default function AvailabilityTab() {
               ))}
             </div>
             {error && <p className="text-red-500">{error}</p>}
-            <Button onClick={handleSubmit}>Submit</Button>
+            { bisLoading ?
+        <Loader2 className="h-8 w-8 animate-spin" />
+      :  <Button onClick={handleSubmit}>Submit</Button>}
           </div>
         </DialogContent>
       </Dialog>
@@ -412,7 +428,8 @@ export default function AvailabilityTab() {
                   </SelectContent>
                 </Select>
               </div>
-              <Button onClick={handleEditSubmit}>Update Availability Slot</Button>
+              { bisLoading ?
+        <Loader2 className="h-8 w-8 animate-spin" /> : <Button onClick={handleEditSubmit}>Update Availability Slot</Button> }
             </div>
           )}
         </DialogContent>
