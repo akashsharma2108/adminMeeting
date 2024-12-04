@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useEffect } from "react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
@@ -33,6 +31,7 @@ interface Selection {
 export default function SelectionTab() {
   const [selections, setSelections] = useState<Selection[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [bisLoading, setbisLoading] = useState(false)
   const [, setError] = useState<string | null>(null);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -70,6 +69,7 @@ export default function SelectionTab() {
   };
 
   const handleSubmit = async () => {
+    setbisLoading(true)
     try {
       const response = await fetch("http://localhost:4000/api/selections", {
         method: "POST",
@@ -102,7 +102,9 @@ export default function SelectionTab() {
         description: "Failed to add selection. Please try again.",
         variant: "destructive",
       });
-    }
+    } finally {
+        setbisLoading(false)
+        }
   };
 
   const handleEdit = (selection: Selection) => {
@@ -111,6 +113,7 @@ export default function SelectionTab() {
   };
 
   const handleEditSubmit = async () => {
+    setbisLoading(true)
     if (!editingSelection) return;
 
     try {
@@ -144,10 +147,14 @@ export default function SelectionTab() {
         description: "Failed to update selection. Please try again.",
         variant: "destructive",
       });
-    }
+    } finally {
+        setbisLoading(false)
+        }
+
   };
 
   const handleDelete = async (id: number) => {
+    setbisLoading(true)
     try {
       const response = await fetch(
         `http://localhost:4000/api/selections/${id}`,
@@ -172,7 +179,10 @@ export default function SelectionTab() {
         description: "Failed to delete selection. Please try again.",
         variant: "destructive",
       });
-    }
+    } finally {
+        setbisLoading(false)
+        }
+        
   };
 
   if (isLoading) {
@@ -221,9 +231,11 @@ export default function SelectionTab() {
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-semibold">Selections</h2>
         <div className="space-x-2">
-        <Button onClick={() => gentrateSelection()}>
+        { bisLoading ?
+        <Loader2 className="h-8 w-8 animate-spin" />
+     :  <Button onClick={() => gentrateSelection()}>
           Generate Selection
-        </Button>
+        </Button> }
          <Button onClick={() => setIsAddDialogOpen(true)}>
           Add Selection
         </Button>
@@ -259,19 +271,23 @@ export default function SelectionTab() {
                 <TableCell>{selection.Investor.InvCompany}</TableCell>
                 <TableCell>{selection.Investor.InvName}</TableCell>
                 <TableCell>
-                  <Button
+                { bisLoading ?
+        <Loader2 className="h-8 w-8 animate-spin" />
+     :      <Button
                     variant="outline"
                     className="mr-2"
                     onClick={() => handleEdit(selection)}
                   >
                     Edit
-                  </Button>
-                  <Button
+                  </Button>}
+                  { bisLoading ?
+        <Loader2 className="h-8 w-8 animate-spin" />
+     :    <Button
                     variant="destructive"
                     onClick={() => handleDelete(selection.SelId)}
                   >
                     Delete
-                  </Button>
+                  </Button>}
                 </TableCell>
               </TableRow>
             ))}
@@ -311,7 +327,9 @@ export default function SelectionTab() {
                 className="col-span-3"
               />
             </div>
-            <Button onClick={handleSubmit}>Add Selection</Button>
+            { bisLoading ?
+        <Loader2 className="h-8 w-8 animate-spin" />
+     :  <Button onClick={handleSubmit}>Add Selection</Button>}
           </div>
         </DialogContent>
       </Dialog>
@@ -355,7 +373,9 @@ export default function SelectionTab() {
                   className="col-span-3"
                 />
               </div>
-              <Button onClick={handleEditSubmit}>Update Selection</Button>
+              { bisLoading ?
+        <Loader2 className="h-8 w-8 animate-spin" />
+     :    <Button onClick={handleEditSubmit}>Update Selection</Button>}
             </div>
           )}
         </DialogContent>

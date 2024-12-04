@@ -32,6 +32,7 @@ interface Meeting {
 export default function MeetingTab() {
   const [meetings, setMeetings] = useState<Meeting[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [bisLoading, setbisLoading] = useState(false)
   const [, setError] = useState<string | null>(null)
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
@@ -73,6 +74,7 @@ export default function MeetingTab() {
   }
 
   const handleSubmit = async () => {
+    setbisLoading(true)
     try {
       const response = await fetch('http://localhost:4000/api/meetings', {
         method: 'POST',
@@ -104,6 +106,8 @@ export default function MeetingTab() {
         description: "Failed to add meeting. Please try again.",
         variant: "destructive",
       })
+    } finally {
+      setbisLoading(false)
     }
   }
 
@@ -113,6 +117,7 @@ export default function MeetingTab() {
   }
 
   const handleEditSubmit = async () => {
+    setbisLoading(true)
     if (!editingMeeting) return
 
     try {
@@ -146,10 +151,13 @@ export default function MeetingTab() {
         description: "Failed to update meeting. Please try again.",
         variant: "destructive",
       })
+    } finally {
+      setbisLoading(false)
     }
   }
 
   const handleDelete = async (id: number) => {
+    setbisLoading(true)
     try {
       const response = await fetch(`http://localhost:4000/api/meetings/${id}`, {
         method: 'DELETE',
@@ -171,10 +179,13 @@ export default function MeetingTab() {
         description: "Failed to delete meeting. Please try again.",
         variant: "destructive",
       })
+    } finally {
+        setbisLoading(false)
     }
   }
 
   const handleGenerateMeetings = async () => {
+    setbisLoading(true)
     try {
       const response = await fetch('http://localhost:4000/api/meetings/generate', {
         method: 'POST',
@@ -198,10 +209,13 @@ export default function MeetingTab() {
         description: "Failed to generate meetings. Please try again.",
         variant: "destructive",
       })
+    } finally {
+        setbisLoading(false)
     }
   }
 
   const handleDownloadCSV = () => {
+    setbisLoading(true)
     const headers = ["ID", "Selection ID", "Start Time", "End Time", "Date", "Investor Name", "Investor Company", "Portfolio Company", "Portfolio Timezone"]
     const csvContent = [
       headers.join(','),
@@ -229,6 +243,7 @@ export default function MeetingTab() {
       link.click()
       document.body.removeChild(link)
     }
+    setbisLoading(false)
   }
 
   if (isLoading) {
@@ -241,8 +256,10 @@ export default function MeetingTab() {
   if (meetings.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-64">
-        <p className="mb-4">No investors found.</p>
-        <Button onClick={handleGenerateMeetings}>Generate Meetings</Button>
+        <p className="mb-4">No data found.</p>
+        { bisLoading ?
+        <Loader2 className="h-8 w-8 animate-spin" />
+     :    <Button onClick={handleGenerateMeetings}>Generate Meetings</Button> }
       </div>
     )
   }
@@ -253,8 +270,12 @@ export default function MeetingTab() {
         <h2 className="text-xl font-semibold">Meetings</h2>
         <div className="space-x-2">
           <Button onClick={() => setIsAddDialogOpen(true)}>Add Meeting</Button>
-          <Button onClick={handleGenerateMeetings}>Generate Meetings</Button>
-          <Button onClick={handleDownloadCSV}>Download CSV</Button>
+          { bisLoading ?
+        <Loader2 className="h-8 w-8 animate-spin" />
+     :    <Button onClick={handleGenerateMeetings}>Generate Meetings</Button>}
+          { bisLoading ?
+        <Loader2 className="h-8 w-8 animate-spin" />
+     :     <Button onClick={handleDownloadCSV}>Download CSV</Button> }
         </div>
       </div>
 
@@ -286,8 +307,12 @@ export default function MeetingTab() {
               <TableCell>{meeting.Selection.PortfolioCompany.PFCompany}</TableCell>
               <TableCell>{meeting.Selection.PortfolioCompany.PFName}</TableCell>
               <TableCell>
-                <Button variant="outline" className="mr-2" onClick={() => handleEdit(meeting)}>Edit</Button>
-                <Button variant="destructive" onClick={() => handleDelete(meeting.id)}>Delete</Button>
+              { bisLoading ?
+        <Loader2 className="h-8 w-8 animate-spin" />
+     :     <Button variant="outline" className="mr-2" onClick={() => handleEdit(meeting)}>Edit</Button>}
+     { bisLoading ?
+        <Loader2 className="h-8 w-8 animate-spin" />
+     :       <Button variant="destructive" onClick={() => handleDelete(meeting.id)}>Delete</Button>}
               </TableCell>
             </TableRow>
           ))}
@@ -347,7 +372,9 @@ export default function MeetingTab() {
                 className="col-span-3"
               />
             </div>
-            <Button onClick={handleSubmit}>Add Meeting</Button>
+            { bisLoading ?
+        <Loader2 className="h-8 w-8 animate-spin" />
+     :  <Button onClick={handleSubmit}>Add Meeting</Button> }
           </div>
         </DialogContent>
       </Dialog>
@@ -406,7 +433,9 @@ export default function MeetingTab() {
                   className="col-span-3"
                 />
               </div>
-              <Button onClick={handleEditSubmit}>Update Meeting</Button>
+              { bisLoading ?
+        <Loader2 className="h-8 w-8 animate-spin" />
+     :   <Button onClick={handleEditSubmit}>Update Meeting</Button>}
             </div>
           )}
         </DialogContent>
@@ -414,4 +443,3 @@ export default function MeetingTab() {
     </div>
   )
 }
-

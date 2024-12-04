@@ -26,6 +26,7 @@ interface ManualEntry {
 export default function PortfolioTab() {
   const [portfolioCompanies, setPortfolioCompanies] = useState<PortfolioCompany[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [bisLoading, setbisLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
@@ -83,6 +84,7 @@ export default function PortfolioTab() {
   const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop, accept: { 'text/csv': ['.csv'] } })
 
   const handleSubmit = async () => {
+    setbisLoading(true)
     if (!csvFile && manualEntries.every(entry => !entry.PFName && !entry.PFCompany && !entry.PFTimezone)) {
       setError('Please provide either a CSV file or manual entries.')
       toast({
@@ -143,6 +145,8 @@ export default function PortfolioTab() {
         description: "Failed to add portfolio companies. Please try again.",
         variant: "destructive",
       })
+    } finally {
+      setbisLoading(false)
     }
   }
 
@@ -152,6 +156,7 @@ export default function PortfolioTab() {
   }
 
   const handleEditSubmit = async () => {
+    setbisLoading(true)
     if (!editingCompany) return
 
     try {
@@ -184,10 +189,13 @@ export default function PortfolioTab() {
         description: "Failed to update portfolio company. Please try again.",
         variant: "destructive",
       })
+    } finally {
+      setbisLoading(false)
     }
   }
 
   const handleDelete = async (id: number) => {
+    setbisLoading(true)
     try {
       const response = await fetch(`http://localhost:4000/api/portfoliocompanies/${id}`, {
         method: 'DELETE',
@@ -209,6 +217,8 @@ export default function PortfolioTab() {
         description: "Failed to delete portfolio company. Please try again.",
         variant: "destructive",
       })
+    } finally {
+      setbisLoading(false)
     }
   }
 
@@ -250,8 +260,12 @@ export default function PortfolioTab() {
               <TableCell>{company.PFCompany}</TableCell>
               <TableCell>{company.PFTimezone}</TableCell>
               <TableCell>
-                <Button variant="outline" className="mr-2" onClick={() => handleEdit(company)}>Edit</Button>
-                <Button variant="destructive" onClick={() => handleDelete(company.PFId)}>Delete</Button>
+              { bisLoading ?
+        <Loader2 className="h-8 w-8 animate-spin" />
+     :    <Button variant="outline" className="mr-2" onClick={() => handleEdit(company)}>Edit</Button> }
+            { bisLoading ?
+        <Loader2 className="h-8 w-8 animate-spin" />
+     :    <Button variant="destructive" onClick={() => handleDelete(company.PFId)}>Delete</Button>}
               </TableCell>
             </TableRow>
           ))}
@@ -305,7 +319,9 @@ export default function PortfolioTab() {
               ))}
             </div>
             {error && <p className="text-red-500">{error}</p>}
-            <Button onClick={handleSubmit}>Submit</Button>
+            { bisLoading ?
+        <Loader2 className="h-8 w-8 animate-spin" />
+     :    <Button onClick={handleSubmit}>Submit</Button> }
           </div>
         </DialogContent>
       </Dialog>
@@ -350,7 +366,9 @@ export default function PortfolioTab() {
                   className="col-span-3"
                 />
               </div>
-              <Button onClick={handleEditSubmit}>Update Portfolio Company</Button>
+              { bisLoading ?
+        <Loader2 className="h-8 w-8 animate-spin" />
+     :   <Button onClick={handleEditSubmit}>Update Portfolio Company</Button>}
             </div>
           )}
         </DialogContent>
@@ -358,4 +376,3 @@ export default function PortfolioTab() {
     </div>
   )
 }
-

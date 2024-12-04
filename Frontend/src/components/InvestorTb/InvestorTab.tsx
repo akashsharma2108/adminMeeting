@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
@@ -33,6 +31,7 @@ interface ManualEntry {
 export default function InvestorTab() {
   const [investors, setInvestors] = useState<Investor[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [bisLoading, setbisLoading] = useState(false)
   const [error, setError] = useState<string | null>(null);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -102,6 +101,7 @@ export default function InvestorTab() {
   });
 
   const handleSubmit = async () => {
+    setbisLoading(true)
     if (
       !csvFile &&
       manualEntries.every(
@@ -208,6 +208,8 @@ export default function InvestorTab() {
         description: "Failed to add investors. Please try again.",
         variant: "destructive",
       })
+    } finally {
+      setbisLoading(false)
     }
   };
 
@@ -217,6 +219,7 @@ export default function InvestorTab() {
   };
 
   const handleEditSubmit = async () => {
+    setbisLoading(true)
     if (!editingInvestor) return;
 
     try {
@@ -256,10 +259,13 @@ export default function InvestorTab() {
         description: "Failed to update investor. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setbisLoading(false)
     }
   };
 
   const handleDelete = async (id: string) => {
+    setbisLoading(true)
     try {
       const response = await fetch(
         `http://localhost:4000/api/investors/${id}`,
@@ -284,6 +290,8 @@ export default function InvestorTab() {
         description: "Failed to delete investor. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setbisLoading(false)
     }
   };
 
@@ -323,19 +331,24 @@ export default function InvestorTab() {
                 <TableCell>{investor.InvCompany}</TableCell>
                 <TableCell>{investor.InvTimezone}</TableCell>
                 <TableCell>
-                  <Button
+                { bisLoading ?
+        <Loader2 className="h-8 w-8 animate-spin" />
+     :  <Button
                     variant="outline"
                     className="mr-2"
                     onClick={() => handleEdit(investor)}
                   >
                     Edit
-                  </Button>
+                  </Button>}
+                  { bisLoading ?
+        <Loader2 className="h-8 w-8 animate-spin" />
+     :
                   <Button
                     variant="destructive"
                     onClick={() => handleDelete(investor.InvId)}
                   >
                     Delete
-                  </Button>
+                  </Button>}
                 </TableCell>
               </TableRow>
             ))}
@@ -415,7 +428,9 @@ export default function InvestorTab() {
               ))}
             </div>
             {error && <p className="text-red-500">{error}</p>}
-            <Button onClick={handleSubmit}>Submit</Button>
+            { bisLoading ?
+        <Loader2 className="h-8 w-8 animate-spin" />
+     :     <Button onClick={handleSubmit}>Submit</Button>}
           </div>
         </DialogContent>
       </Dialog>
@@ -475,7 +490,9 @@ export default function InvestorTab() {
                   className="col-span-3"
                 />
               </div>
-              <Button onClick={handleEditSubmit}>Update Investor</Button>
+              { bisLoading ?
+        <Loader2 className="h-8 w-8 animate-spin" />
+     :    <Button onClick={handleEditSubmit}>Update Investor</Button> }
             </div>
           )}
         </DialogContent>
