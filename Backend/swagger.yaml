@@ -1,0 +1,878 @@
+openapi: "3.0.0"
+info:
+  title: Meeting Scheduler API
+  description: API for managing investor and portfolio company selections
+  version: 1.0.0
+  contact:
+    email: akashsharma9009975@gmail.com
+servers:
+  - url: "http://localhost:4000/api"
+    description: "Local server of the application"
+  - url: "https://meetingscheduler.herokuapp.com/api"
+    description: "Production server of the application"
+components:
+  schemas:
+    Investor:
+      type: object
+      properties:
+        InvId:
+          type: string
+          example: "1234"
+        InvName:
+          type: string
+          example: "John Doe"
+        InvCompany:
+          type: string
+          example: "ABC Corp"
+        InvTimezone:
+          type: string
+          example: "PST"
+        createdAt:
+          type: string
+          example: "2024-01-01T10:00:00Z"
+        updatedAt:
+          type: string
+          example: "2024-01-01T12:00:00Z"
+    PortfolioCompany:
+      type: object
+      properties:
+        PFId:
+          type: string
+          example: "5678"
+        PFName:
+          type: string
+          example: "Tech Innovations"
+        PFCompany:
+          type: string
+          example: "XYZ Ventures"
+        PFTimezone:
+          type: string
+          example: "EST"
+        createdAt:
+          type: string
+          example: "2024-01-01T10:00:00Z"
+        updatedAt:
+          type: string
+          example: "2024-01-01T12:00:00Z"
+    Selection:
+      type: object
+      properties:
+        SelId:
+          type: string
+          example: "91011"
+        InvId:
+          type: string
+          example: "1234"
+        PFId:
+          type: string
+          example: "5678"
+        createdAt:
+          type: string
+          example: "2024-01-01T10:00:00Z"
+        updatedAt:
+          type: string
+          example: "2024-01-01T12:00:00Z"
+    Meeting:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "1001"
+        SelId:
+          type: string
+          example: "91011"
+        date:
+          type: string
+          example: "2024-01-01"
+        startTime:
+          type: string
+          example: "10:00:00"
+        endTime:
+          type: string
+          example: "11:00:00"
+        duration:
+          type: integer
+          example: 60
+        createdAt:
+          type: string
+          example: "2024-01-01T10:00:00Z"
+        updatedAt:
+          type: string
+          example: "2024-01-01T12:00:00Z"
+    AvailabilitySlot:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "1"
+        date:
+          type: string
+          format: date
+          example: "2024-01-01"
+        startTime:
+          type: string
+          format: time
+          example: "10:00:00"
+        endTime:
+          type: string
+          format: time
+          example: "12:00:00"
+        timezone:
+          type: string
+          example: "UTC+5:30"
+        createdAt:
+          type: string
+          example: "2024-01-01T10:00:00Z"
+        updatedAt:
+          type: string
+          example: "2024-01-01T12:00:00Z"
+    NonMeeting:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "1"
+        SelId:
+          type: string
+          example: "1001"
+        date:
+          type: string
+          format: date
+          example: "2024-01-01"
+        startTime:
+          type: string
+          format: time
+          example: "10:00:00"
+        endTime:
+          type: string
+          format: time
+          example: "11:00:00"
+        duration:
+          type: integer
+          example: 60
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-01-01T10:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2024-01-01T11:00:00Z"
+paths:
+  /investors:
+    get:
+      tags:
+        - Investors
+      summary: Get all investors
+      responses:
+        "200":
+          description: List of all investors
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Investor"
+        "500":
+          description: Server error
+    post:
+      tags:
+        - Investors
+      summary: Create a new investor or multiple investors
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                InvName:
+                  type: [string]
+                  example: ["John Doe", "Jane Doe"]
+                InvCompany:
+                  type: [string]
+                  example: ["ABC Corp", "XYZ Corp"]
+                InvTimezone:
+                  type: [string]
+                  example: ["PST", "EST"]
+      responses:
+        "201":
+          description: Investors created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "Success"
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Investor"
+        "500":
+          description: Server error
+  /investors/{id}:
+    get:
+      tags:
+        - Investors
+      summary: Get investor by ID
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: Investor ID
+      responses:
+        "200":
+          description: Investor details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Investor"
+        "404":
+          description: Investor not found
+        "500":
+          description: Server error
+    put:
+      tags:
+        - Investors
+      summary: Update an investor by ID
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: Investor ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Investor"
+      responses:
+        "200":
+          description: Investor updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Investor"
+        "404":
+          description: Investor not found
+        "500":
+          description: Server error
+    delete:
+      tags:
+        - Investors
+      summary: Delete an investor by ID
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: Investor ID
+      responses:
+        "200":
+          description: Investor deleted successfully
+        "404":
+          description: Investor not found
+        "500":
+          description: Server error
+  /portfoliocompanies:
+    get:
+      tags:
+        - Portfolio Companies
+      summary: Get all portfolio companies
+      responses:
+        "200":
+          description: List of all portfolio companies
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PortfolioCompany"
+        "500":
+          description: Server error
+    post:
+      tags:
+        - Portfolio Companies
+      summary: Create a new portfolio company or multiple companies
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                PFName:
+                  type: [string]
+                  example: ["Tech Innovations", "FinTech Solutions"]
+                PFCompany:
+                  type: [string]
+                  example: ["XYZ Ventures", "ABC Investments"]
+                PFTimezone:
+                  type: [string]
+                  example: ["EST", "CST"]
+      responses:
+        "201":
+          description: Portfolio companies created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "Success"
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/PortfolioCompany"
+        "500":
+          description: Server error
+  /portfoliocompanies/{id}:
+    get:
+      tags:
+        - Portfolio Companies
+      summary: Get portfolio company by ID
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: Portfolio Company ID
+      responses:
+        "200":
+          description: Portfolio Company details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PortfolioCompany"
+        "404":
+          description: Portfolio Company not found
+        "500":
+          description: Server error
+    put:
+      tags:
+        - Portfolio Companies
+      summary: Update a portfolio company by ID
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: Portfolio Company ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PortfolioCompany"
+      responses:
+        "200":
+          description: Portfolio Company updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PortfolioCompany"
+        "404":
+          description: Portfolio Company not found
+        "500":
+          description: Server error
+    delete:
+      tags:
+        - Portfolio Companies
+      summary: Delete a portfolio company by ID
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: Portfolio Company ID
+      responses:
+        "200":
+          description: Portfolio Company deleted successfully
+        "404":
+          description: Portfolio Company not found
+        "500":
+          description: Server error
+  /selections:
+    get:
+      tags:
+        - Selections
+      summary: Get all selections
+      responses:
+        "200":
+          description: List of all selections
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Selection"
+        "500":
+          description: Server error
+    post:
+      tags:
+        - Selections
+      summary: Create a new selection
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                InvId:
+                  type: string
+                  example: "1234"
+                PFId:
+                  type: string
+                  example: "5678"
+      responses:
+        "201":
+          description: Selection created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Selection"
+        "400":
+          description: Invalid Investor or Portfolio Company ID
+        "500":
+          description: Server error
+  /selections/{id}:
+    get:
+      tags:
+        - Selections
+      summary: Get selection by ID
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: Selection ID
+      responses:
+        "200":
+          description: Selection details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Selection"
+        "404":
+          description: Selection not found
+        "500":
+          description: Server error
+    put:
+      tags:
+        - Selections
+      summary: Update a selection by ID
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: Selection ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                InvId:
+                  type: string
+                  example: "1234"
+                PFId:
+                  type: string
+                  example: "5678"
+      responses:
+        "200":
+          description: Selection updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Selection"
+        "400":
+          description: Invalid Investor or Portfolio Company ID
+        "404":
+          description: Selection not found
+        "500":
+          description: Server error
+    delete:
+      tags:
+        - Selections
+      summary: Delete a selection by ID
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: Selection ID
+      responses:
+        "200":
+          description: Selection deleted successfully
+        "404":
+          description: Selection not found
+        "500":
+          description: Server error
+  /meetings:
+    get:
+      tags:
+        - Meetings
+      summary: Retrieve all meetings
+      responses:
+        "200":
+          description: List of all meetings
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Meeting"
+        "500":
+          description: Server error
+    post:
+      tags:
+        - Meetings
+      summary: Create a new meeting
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                SelId:
+                  type: string
+                  example: "91011"
+                date:
+                  type: string
+                  example: "2024-01-01"
+                startTime:
+                  type: string
+                  example: "10:00:00"
+                endTime:
+                  type: string
+                  example: "11:00:00"
+                duration:
+                  type: integer
+                  example: 60
+      responses:
+        "201":
+          description: Meeting created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Meeting"
+        "400":
+          description: Validation error or overlapping meeting
+        "500":
+          description: Server error
+  /meetings/{id}:
+    get:
+      tags:
+        - Meetings
+      summary: Retrieve meeting by ID
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: Meeting ID
+      responses:
+        "200":
+          description: Meeting details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Meeting"
+        "404":
+          description: Meeting not found
+        "500":
+          description: Server error
+    put:
+      tags:
+        - Meetings
+      summary: Update a meeting by ID
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: Meeting ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                SelId:
+                  type: string
+                  example: "91011"
+                date:
+                  type: string
+                  example: "2024-01-01"
+                startTime:
+                  type: string
+                  example: "10:00:00"
+                endTime:
+                  type: string
+                  example: "11:00:00"
+                duration:
+                  type: integer
+                  example: 60
+      responses:
+        "200":
+          description: Meeting updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Meeting"
+        "400":
+          description: Validation error or overlapping meeting
+        "404":
+          description: Meeting not found
+        "500":
+          description: Server error
+    delete:
+      tags:
+        - Meetings
+      summary: Delete a meeting by ID
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: Meeting ID
+      responses:
+        "200":
+          description: Meeting deleted successfully
+        "404":
+          description: Meeting not found
+        "500":
+          description: Server error
+  /meetings/generate:
+    post:
+      tags:
+        - Meetings
+      summary: Generate meeting schedules
+      description: Automatically schedule meetings and resolve conflicts.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                finalizeSchedule:
+                  type: boolean
+                  example: true
+                  description: Option to finalize the schedule immediately.
+      responses:
+        "201":
+          description: Meetings generated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  totalmeetingsScheduled:
+                    type: integer
+                    example: 5
+                  scheduledMeetings:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Meeting"
+                  leftOutMeetings:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Meeting"
+        "500":
+          description: Server error
+  /availabilityslots:
+    get:
+      tags:
+        - Availability Slots
+      summary: Retrieve all availability slots
+      responses:
+        "200":
+          description: List of all availability slots
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AvailabilitySlot"
+        "500":
+          description: Server error
+    post:
+      tags:
+        - Availability Slots
+      summary: Create new availability slot(s)
+      description: Create a single availability slot or multiple slots using an array of dates, start times, and end times.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                date:
+                  oneOf:
+                    - type: string
+                      example: "2024-01-01"
+                    - type: array
+                      items:
+                        type: string
+                      example: ["2024-01-01", "2024-01-02"]
+                startTime:
+                  oneOf:
+                    - type: string
+                      example: "10:00:00"
+                    - type: array
+                      items:
+                        type: string
+                      example: ["10:00:00", "14:00:00"]
+                endTime:
+                  oneOf:
+                    - type: string
+                      example: "12:00:00"
+                    - type: array
+                      items:
+                        type: string
+                      example: ["12:00:00", "16:00:00"]
+                timezone:
+                  oneOf:
+                    - type: string
+                      example: "UTC+5:30"
+                    - type: array
+                      items:
+                        type: string
+                      example: ["UTC+5:30", "UTC+5:30"]
+      responses:
+        "201":
+          description: Slot(s) created successfully
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/AvailabilitySlot"
+                  - type: array
+                    items:
+                      $ref: "#/components/schemas/AvailabilitySlot"
+        "500":
+          description: Server error
+  /availabilityslots/{id}:
+    get:
+      tags:
+        - Availability Slots
+      summary: Retrieve an availability slot by ID
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID of the availability slot
+      responses:
+        "200":
+          description: Availability slot details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AvailabilitySlot"
+        "404":
+          description: Slot not found
+        "500":
+          description: Server error
+    put:
+      tags:
+        - Availability Slots
+      summary: Update an availability slot by ID
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID of the availability slot
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                date:
+                  type: string
+                  example: "2024-01-01"
+                startTime:
+                  type: string
+                  example: "10:00:00"
+                endTime:
+                  type: string
+                  example: "12:00:00"
+                timezone:
+                  type: string
+                  example: "UTC+5:30"
+      responses:
+        "200":
+          description: Availability slot updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AvailabilitySlot"
+        "404":
+          description: Slot not found
+        "500":
+          description: Server error
+    delete:
+      tags:
+        - Availability Slots
+      summary: Delete an availability slot by ID
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID of the availability slot
+      responses:
+        "200":
+          description: Slot deleted successfully
+        "404":
+          description: Slot not found
+        "500":
+          description: Server error
+  /nonmeeting:
+    get:
+      tags:
+        - Non-Meetings
+      summary: Retrieve all non-meetings
+      description: Get a list of all non-meetings from the database.
+      responses:
+        "200":
+          description: List of all non-meetings
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/NonMeeting"
+        "500":
+          description: Server error
+
