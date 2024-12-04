@@ -8,10 +8,10 @@ info:
 servers:
   - url: "http://localhost:4000/api"
     description: "Local server of the application"
-  - url: "https://meetingscheduler.herokuapp.com/api"
+  - url: "https://adminmeeting.onrender.com/api"
     description: "Production server of the application"
 components:
-  schemas:
+schemas:
     Investor:
       type: object
       properties:
