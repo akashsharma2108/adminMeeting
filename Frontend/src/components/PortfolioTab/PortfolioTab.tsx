@@ -42,7 +42,7 @@ export default function PortfolioTab() {
     setIsLoading(true)
     setError(null)
     try {
-      const response = await fetch('http://localhost:4000/api/portfoliocompanies')
+      const response = await fetch('https://adminmeeting.onrender.com/api/portfoliocompanies')
       if (!response.ok) {
         throw new Error('Failed to fetch portfolio companies')
       }
@@ -117,7 +117,7 @@ export default function PortfolioTab() {
     }
 
     try {
-      const response = await fetch('http://localhost:4000/api/portfoliocompanies', {
+      const response = await fetch('https://adminmeeting.onrender.com/api/portfoliocompanies', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(dataToSubmit)
@@ -155,7 +155,7 @@ export default function PortfolioTab() {
     if (!editingCompany) return
 
     try {
-      const response = await fetch(`http://localhost:4000/api/portfoliocompanies/${editingCompany.PFId}`, {
+      const response = await fetch(`https://adminmeeting.onrender.com/api/portfoliocompanies/${editingCompany.PFId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -189,7 +189,7 @@ export default function PortfolioTab() {
 
   const handleDelete = async (id: number) => {
     try {
-      const response = await fetch(`http://localhost:4000/api/portfoliocompanies/${id}`, {
+      const response = await fetch(`https://adminmeeting.onrender.com/api/portfoliocompanies/${id}`, {
         method: 'DELETE',
       })
 

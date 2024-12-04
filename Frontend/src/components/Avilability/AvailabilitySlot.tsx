@@ -55,7 +55,7 @@ export default function AvailabilityTab() {
     setIsLoading(true)
     setError(null)
     try {
-      const response = await fetch('http://localhost:4000/api/availabilityslots')
+      const response = await fetch('https://adminmeeting.onrender.com/api/availabilityslots')
       if (!response.ok) {
         throw new Error('Failed to fetch availability slots')
       }
@@ -137,7 +137,7 @@ export default function AvailabilityTab() {
     }
 
     try {
-      const response = await fetch('http://localhost:4000/api/availabilityslots', {
+      const response = await fetch('https://adminmeeting.onrender.com/api/availabilityslots', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(dataToSubmit)
@@ -175,7 +175,7 @@ export default function AvailabilityTab() {
     if (!editingSlot) return
 
     try {
-      const response = await fetch(`http://localhost:4000/api/availabilityslots/${editingSlot.id}`, {
+      const response = await fetch(`https://adminmeeting.onrender.com/api/availabilityslots/${editingSlot.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -210,7 +210,7 @@ export default function AvailabilityTab() {
 
   const handleDelete = async (id: number) => {
     try {
-      const response = await fetch(`http://localhost:4000/api/availabilityslots/${id}`, {
+      const response = await fetch(`https://adminmeeting.onrender.com/api/availabilityslots/${id}`, {
         method: 'DELETE',
       })
 

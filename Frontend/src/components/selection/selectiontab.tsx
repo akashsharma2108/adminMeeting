@@ -50,7 +50,7 @@ export default function SelectionTab() {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetch("http://localhost:4000/api/selections");
+      const response = await fetch("https://adminmeeting.onrender.com/api/selections");
       if (!response.ok) {
         throw new Error("Failed to fetch selections");
       }
@@ -71,7 +71,7 @@ export default function SelectionTab() {
 
   const handleSubmit = async () => {
     try {
-      const response = await fetch("http://localhost:4000/api/selections", {
+      const response = await fetch("https://adminmeeting.onrender.com/api/selections", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(newSelection),
@@ -115,7 +115,7 @@ export default function SelectionTab() {
 
     try {
       const response = await fetch(
-        `http://localhost:4000/api/selections/${editingSelection.SelId}`,
+        `https://adminmeeting.onrender.com/api/selections/${editingSelection.SelId}`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -150,7 +150,7 @@ export default function SelectionTab() {
   const handleDelete = async (id: number) => {
     try {
       const response = await fetch(
-        `http://localhost:4000/api/selections/${id}`,
+        `https://adminmeeting.onrender.com/api/selections/${id}`,
         {
           method: "DELETE",
         }
@@ -185,7 +185,7 @@ export default function SelectionTab() {
 
   const gentrateSelection = async () => {
     try {
-        const response = await fetch("http://localhost:4000/api/selections/generateselections", {
+        const response = await fetch("https://adminmeeting.onrender.com/api/selections/generateselections", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
         });

@@ -51,7 +51,7 @@ export default function InvestorTab() {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetch("http://localhost:4000/api/investors");
+      const response = await fetch("https://adminmeeting.onrender.com/api/investors");
       if (!response.ok) {
         throw new Error("Failed to fetch investors");
       }
@@ -182,7 +182,7 @@ export default function InvestorTab() {
     }
 
     try {
-      const response = await fetch('http://localhost:4000/api/investors', {
+      const response = await fetch('https://adminmeeting.onrender.com/api/investors', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(dataToSubmit)
@@ -221,7 +221,7 @@ export default function InvestorTab() {
 
     try {
       const response = await fetch(
-        `http://localhost:4000/api/investors/${editingInvestor.InvId}`,
+        `https://adminmeeting.onrender.com/api/investors/${editingInvestor.InvId}`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -262,7 +262,7 @@ export default function InvestorTab() {
   const handleDelete = async (id: string) => {
     try {
       const response = await fetch(
-        `http://localhost:4000/api/investors/${id}`,
+        `https://adminmeeting.onrender.com/api/investors/${id}`,
         {
           method: "DELETE",
         }

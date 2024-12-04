@@ -38,7 +38,7 @@ export default function UnscheduledMeetingsTab() {
     setIsLoading(true)
     setError(null)
     try {
-      const response = await fetch('http://localhost:4000/api/nonmeeting')
+      const response = await fetch('https://adminmeeting.onrender.com/api/nonmeeting')
       if (!response.ok) {
         throw new Error('Failed to fetch unscheduled meetings')
       }

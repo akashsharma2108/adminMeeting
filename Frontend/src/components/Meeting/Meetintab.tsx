@@ -53,7 +53,7 @@ export default function MeetingTab() {
     setIsLoading(true)
     setError(null)
     try {
-      const response = await fetch('http://localhost:4000/api/meetings')
+      const response = await fetch('https://adminmeeting.onrender.com/api/meetings')
       if (!response.ok) {
         throw new Error('Failed to fetch meetings')
       }
@@ -74,7 +74,7 @@ export default function MeetingTab() {
 
   const handleSubmit = async () => {
     try {
-      const response = await fetch('http://localhost:4000/api/meetings', {
+      const response = await fetch('https://adminmeeting.onrender.com/api/meetings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newMeeting)
@@ -116,7 +116,7 @@ export default function MeetingTab() {
     if (!editingMeeting) return
 
     try {
-      const response = await fetch(`http://localhost:4000/api/meetings/${editingMeeting.id}`, {
+      const response = await fetch(`https://adminmeeting.onrender.com/api/meetings/${editingMeeting.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -151,7 +151,7 @@ export default function MeetingTab() {
 
   const handleDelete = async (id: number) => {
     try {
-      const response = await fetch(`http://localhost:4000/api/meetings/${id}`, {
+      const response = await fetch(`https://adminmeeting.onrender.com/api/meetings/${id}`, {
         method: 'DELETE',
       })
 
@@ -176,7 +176,7 @@ export default function MeetingTab() {
 
   const handleGenerateMeetings = async () => {
     try {
-      const response = await fetch('http://localhost:4000/api/meetings/generate', {
+      const response = await fetch('https://adminmeeting.onrender.com/api/meetings/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ finalizeSchedule: true })
