@@ -8,7 +8,9 @@ This application helps manage and schedule Meetings. with investor company and P
 
 You can access the application via the following link:
 
-[Meeting Admin pannel](https://)
+[Meeting Admin pannel](https://meetingadminpanel.netlify.app/)
+
+[Swagger](https://adminmeeting.onrender.com/api-docs/)
 
 - Front-end is deployed on Netlify.
 - Back-end is deployed on Render.
@@ -20,7 +22,7 @@ You can access the application via the following link:
 Follow these steps to set up the application locally:
 
 
- Clone the repository: git clone https://github.com/akashsharma2108/markDown-viewer.git
+ Clone the repository: git clone https://github.com/akashsharma2108/adminMeeting.git
  Running Backend: <br/>
     - cd Backend <br/>
     - npm install <br/>
@@ -38,7 +40,7 @@ CORS_ORIGIN='http://localhost:5173'
 
 #### two way of accessing apis 
  postman -> https://http://localhost:4000/api/
- [Swagger](https://) 
+ [Swagger](https://adminmeeting.onrender.com/api-docs/) 
  in swagger select the local server and use it.
 
 
