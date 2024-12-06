@@ -80,7 +80,7 @@ interface Selection {
     PFCompany: string;
   };
 }
-
+const api = import.meta.env.VITE_APIURL
 export default function MeetingTab() {
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -165,12 +165,12 @@ export default function MeetingTab() {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetch("http://localhost:4000/api/meetings");
+      const response = await fetch(`${api}api/meetings`);
       const unmeetresponse = await fetch(
-        "http://localhost:4000/api/nonmeeting"
+        `${api}api/nonmeeting`
       );
       const noslotresponse = await fetch(
-        "http://localhost:4000/api/meetings/unscheduled",
+        `${api}api/meetings/unscheduled`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -214,7 +214,7 @@ export default function MeetingTab() {
   const handleSendMail = async () => {
     setbisLoading(true);
     try {
-      const response = await fetch("http://localhost:4000/api/mail", {
+      const response = await fetch(`${api}api/mail`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(emailData),
@@ -244,7 +244,7 @@ export default function MeetingTab() {
   const handleSubmit = async () => {
     setbisLoading(true);
     try {
-      const response = await fetch("http://localhost:4000/api/meetings", {
+      const response = await fetch(`${api}api/meetings`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(newMeeting),
@@ -291,7 +291,7 @@ export default function MeetingTab() {
 
     try {
       const response = await fetch(
-        `http://localhost:4000/api/meetings/${editingMeeting.id}`,
+        `${api}api/meetings/${editingMeeting.id}`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -331,7 +331,7 @@ export default function MeetingTab() {
   const handleDelete = async (id: number) => {
     setbisLoading(true);
     try {
-      const response = await fetch(`http://localhost:4000/api/meetings/${id}`, {
+      const response = await fetch(`${api}api/meetings/${id}`, {
         method: "DELETE",
       });
 
@@ -360,7 +360,7 @@ export default function MeetingTab() {
     setbisLoading(true);
     try {
       const response = await fetch(
-        "http://localhost:4000/api/meetings/generate",
+        `${api}api/meetings/generate`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

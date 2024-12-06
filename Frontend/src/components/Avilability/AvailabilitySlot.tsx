@@ -38,6 +38,8 @@ interface ManualEntry {
 
 const timezones = ['GMT', 'IST', 'EST', 'PST']
 
+//get it from env
+const api = import.meta.env.VITE_APIURL
 export default function AvailabilityTab() {
   const [availabilitySlots, setAvailabilitySlots] = useState<AvailabilitySlot[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -51,7 +53,7 @@ export default function AvailabilityTab() {
   const [filtered, setFiltered] = useState<AvailabilitySlot[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const { toast } = useToast()
-
+ 
   useEffect(() => {
     fetchAvailabilitySlots()
   }, [])
@@ -69,7 +71,7 @@ export default function AvailabilityTab() {
     setIsLoading(true)
     setError(null)
     try {
-      const response = await fetch('http://localhost:4000/api/availabilityslots')
+      const response = await fetch(`${api}api/availabilityslots`)
       if (!response.ok) {
         throw new Error('Failed to fetch availability slots')
       }
@@ -152,7 +154,7 @@ export default function AvailabilityTab() {
     }
 
     try {
-      const response = await fetch('http://localhost:4000/api/availabilityslots', {
+      const response = await fetch(`${api}api/availabilityslots`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(dataToSubmit)
@@ -193,7 +195,7 @@ export default function AvailabilityTab() {
     if (!editingSlot) return
 
     try {
-      const response = await fetch(`http://localhost:4000/api/availabilityslots/${editingSlot.id}`, {
+      const response = await fetch(`${api}api/availabilityslots/${editingSlot.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -231,7 +233,7 @@ export default function AvailabilityTab() {
   const handleDelete = async (id: number) => {
     setbisLoading(true)
     try {
-      const response = await fetch(`http://localhost:4000/api/availabilityslots/${id}`, {
+      const response = await fetch(`${api}/api/availabilityslots/${id}`, {
         method: 'DELETE',
       })
 

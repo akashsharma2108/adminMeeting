@@ -23,7 +23,7 @@ interface Selection {
     PFCompany: string;
   };
 }
-
+const api = import.meta.env.VITE_APIURL
 export default function SelectionTab() {
   const [selections, setSelections] = useState<Selection[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -62,7 +62,7 @@ export default function SelectionTab() {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetch("http://localhost:4000/api/selections");
+      const response = await fetch(`${api}api/selections`);
       if (!response.ok) {
         throw new Error("Failed to fetch selections");
       }
@@ -84,7 +84,7 @@ export default function SelectionTab() {
   const handleSubmit = async () => {
     setbisLoading(true);
     try {
-      const response = await fetch("http://localhost:4000/api/selections", {
+      const response = await fetch(`${api}api/selections`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(newSelection),
@@ -131,7 +131,7 @@ export default function SelectionTab() {
 
     try {
       const response = await fetch(
-        `http://localhost:4000/api/selections/${editingSelection.SelId}`,
+        `${api}api/selections/${editingSelection.SelId}`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -169,7 +169,7 @@ export default function SelectionTab() {
     setbisLoading(true);
     try {
       const response = await fetch(
-        `http://localhost:4000/api/selections/${id}`,
+        `${api}api/selections/${id}`,
         {
           method: "DELETE",
         }
@@ -208,7 +208,7 @@ export default function SelectionTab() {
     setbisLoading(true);
     try {
       const response = await fetch(
-        "http://localhost:4000/api/selections/generateselections",
+        `${api}api/selections/generateselections`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

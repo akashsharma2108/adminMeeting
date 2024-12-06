@@ -25,7 +25,7 @@ interface ManualEntry {
   InvCompany: string
   InvTimezone: string
 }
-
+const api = import.meta.env.VITE_APIURL
 export default function InvestorTab() {
   const [investors, setInvestors] = useState<Investor[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -57,7 +57,7 @@ export default function InvestorTab() {
   const fetchInvestors = async () => {
     setIsLoading(true)
     try {
-      const response = await fetch("http://localhost:4000/api/investors")
+      const response = await fetch(`${api}api/investors`)
       if (!response.ok) {
         throw new Error("Failed to fetch investors")
       }
@@ -156,7 +156,7 @@ export default function InvestorTab() {
     }
 
     try {
-      const response = await fetch('http://localhost:4000/api/investors', {
+      const response = await fetch(`${api}api/investors`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(dataToSubmit)
@@ -196,7 +196,7 @@ export default function InvestorTab() {
     if (!editingInvestor) return
     try {
       const response = await fetch(
-        `http://localhost:4000/api/investors/${editingInvestor.InvId}`,
+        `${api}api/investors/${editingInvestor.InvId}`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -230,7 +230,7 @@ export default function InvestorTab() {
   const handleDelete = async (id: string) => {
     setbisLoading(true)
     try {
-      const response = await fetch(`http://localhost:4000/api/investors/${id}`, {
+      const response = await fetch(`${api}api/investors/${id}`, {
         method: "DELETE",
       })
       if (response.ok) {

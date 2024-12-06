@@ -10,7 +10,7 @@ interface LayoutProps {
   children: React.ReactNode
 }
 
-
+const api = import.meta.env.VITE_APIURL
 export function Layout({ children }: LayoutProps) {
 
   const [IsLoading, setIsLoading] = React.useState(false);
@@ -20,7 +20,7 @@ export function Layout({ children }: LayoutProps) {
     setIsLoading(true);
     try {
       const noslotresponse = await fetch(
-        "http://localhost:4000/api/deleteall",
+        `${api}api/deleteall`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
