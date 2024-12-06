@@ -6,7 +6,6 @@ import PortfolioTab from './components/PortfolioTab/PortfolioTab'
 import AvailabilityTab from './components/Avilability/AvailabilitySlot'
 import SelectionTab from './components/selection/selectiontab'
 import MeetingTab from './components/Meeting/Meetintab'
-import UnscheduledMeetingsTab from './components/nonmeeting/nonmeeting'
 
 function App() {
   const [activeTab, setActiveTab] = useState('investors')
@@ -21,7 +20,6 @@ function App() {
             <TabsTrigger value="availability">Availability Slots</TabsTrigger>
             <TabsTrigger value="selection">Selection</TabsTrigger>
             <TabsTrigger value="scheduler">Meeting Scheduler</TabsTrigger>
-            <TabsTrigger value="unscheduler">unschedule Meetings</TabsTrigger>
           </TabsList>
           <TabsContent value="investors">
             <InvestorTab />
@@ -30,7 +28,6 @@ function App() {
           <TabsContent value="availability"><AvailabilityTab /></TabsContent>
           <TabsContent value="selection"><SelectionTab /></TabsContent>
           <TabsContent value="scheduler"><MeetingTab /></TabsContent>
-          <TabsContent value="unscheduler"><UnscheduledMeetingsTab /></TabsContent>
         </Tabs>
       </div>
     </Layout>

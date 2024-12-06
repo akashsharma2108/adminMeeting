@@ -24,6 +24,10 @@ export const investorsSchema = sequelize.define<InvestorInstance, Investor>(
       type: DataTypes.STRING(50),
       allowNull: false,
     },
+    InvEmail: {
+      type: DataTypes.STRING(100),
+      allowNull: false,
+    },
     createdAt: {
       type: DataTypes.DATE,
       defaultValue: DataTypes.NOW,

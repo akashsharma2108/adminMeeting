@@ -1,184 +1,158 @@
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "../ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { Label } from "../ui/label";
 import { Loader2, Plus, Minus } from "lucide-react";
 import { useDropzone } from "react-dropzone";
 import { useToast } from "../../hooks/use-toast";
+import { Avatar, AvatarFallback } from "../ui/avatar"
+import { Card, CardContent, CardFooter } from "../ui/card"
+import { Building2, Globe, Mail, Edit, Trash2 } from "lucide-react"
+import { Search } from "lucide-react"
 
 interface Investor {
-  InvId: string;
-  InvName: string;
-  InvCompany: string;
-  InvTimezone: string;
+  InvId: string
+  InvName: string
+  InvEmail: string
+  InvCompany: string
+  InvTimezone: string
 }
 
 interface ManualEntry {
-  InvName: string;
-  InvCompany: string;
-  InvTimezone: string;
+  InvName: string
+  InvEmail: string
+  InvCompany: string
+  InvTimezone: string
 }
 
 export default function InvestorTab() {
-  const [investors, setInvestors] = useState<Investor[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [investors, setInvestors] = useState<Investor[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   const [bisLoading, setbisLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null);
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [editingInvestor, setEditingInvestor] = useState<Investor | null>(null);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [editingInvestor, setEditingInvestor] = useState<Investor | null>(null)
   const [manualEntries, setManualEntries] = useState<ManualEntry[]>([
-    { InvName: "", InvCompany: "", InvTimezone: "" },
-  ]);
-  const [csvFile, setCsvFile] = useState<File | null>(null);
-  const { toast } = useToast();
+    { InvName: "", InvCompany: "", InvTimezone: "", InvEmail: "" },
+  ])
+  const [csvFile, setCsvFile] = useState<File | null>(null)
+  const [filtered, setFiltered] = useState<Investor[]>([])
+    const [searchTerm, setSearchTerm] = useState("")
+  const { toast } = useToast()
 
   useEffect(() => {
-    fetchInvestors();
-  }, []);
+    fetchInvestors()
+  }, [])
+
+  useEffect(() => {
+    if (!isLoading && investors.length > 0) {
+    const filtered = investors.filter((investors) =>
+      investors.InvName.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    setFiltered(filtered)
+    }
+  }, [investors, searchTerm])
 
   const fetchInvestors = async () => {
-    setIsLoading(true);
-    setError(null);
+    setIsLoading(true)
     try {
-      const response = await fetch("http://localhost:4000/api/investors");
+      const response = await fetch("http://localhost:4000/api/investors")
       if (!response.ok) {
-        throw new Error("Failed to fetch investors");
+        throw new Error("Failed to fetch investors")
       }
-      const data = await response.json();
-      setInvestors(data);
+      const data = await response.json()
+      setInvestors(data)
     } catch (err) {
-      setError("Error fetching investors. Please try again.");
-      console.error("Error fetching investors:", err);
+      console.error("Error fetching investors:", err)
       toast({
         title: "Error",
         description: "Failed to fetch investors. Please try again.",
         variant: "destructive",
-      });
+      })
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   const handleManualEntryChange = (
     index: number,
     field: keyof ManualEntry,
     value: string
   ) => {
-    const updatedEntries = [...manualEntries];
-    updatedEntries[index][field] = value;
-    setManualEntries(updatedEntries);
-  };
+    const updatedEntries = [...manualEntries]
+    updatedEntries[index][field] = value
+    setManualEntries(updatedEntries)
+  }
 
   const addManualEntry = () => {
     setManualEntries([
       ...manualEntries,
-      { InvName: "", InvCompany: "", InvTimezone: "" },
-    ]);
-  };
+      { InvName: "", InvCompany: "", InvTimezone: "", InvEmail: "" },
+    ])
+  }
 
   const removeManualEntry = (index: number) => {
-    const updatedEntries = manualEntries.filter((_, i) => i !== index);
-    setManualEntries(updatedEntries);
-  };
+    const updatedEntries = manualEntries.filter((_, i) => i !== index)
+    setManualEntries(updatedEntries)
+  }
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
-    setCsvFile(acceptedFiles[0]);
-  }, []);
+    setCsvFile(acceptedFiles[0])
+  }, [])
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: { "text/csv": [".csv"] },
-  });
+  })
 
   const handleSubmit = async () => {
     setbisLoading(true)
     if (
       !csvFile &&
       manualEntries.every(
-        (entry) => !entry.InvName && !entry.InvCompany && !entry.InvTimezone
+        (entry) => !entry.InvName && !entry.InvCompany && !entry.InvTimezone && !entry.InvEmail
       )
     ) {
-      setError("Please provide either a CSV file or manual entries.");
       toast({
         title: "Error",
         description: "Please provide either a CSV file or manual entries.",
         variant: "destructive",
-      });
-      return;
+      })
+      return
     }
 
     let dataToSubmit: {
-      InvName: Array<string>;
-      InvCompany: Array<string>;
-      InvTimezone: Array<string>;
+      InvName: string[]
+      InvCompany: string[]
+      InvTimezone: string[]
+      InvEmail: string[]
     } = {
       InvName: [],
       InvCompany: [],
       InvTimezone: [],
+      InvEmail: []
     }
 
     if (csvFile) {
-      const text = await csvFile.text();
-      const rows = text.split("\n").slice(1); // Assuming the first row is headers
-      const d = rows
-        .map((row) => {
-          const [_InvId, InvName, InvCompany, InvTimezone] = row
-            .split(",")
-            .map((item) => {
-              return item.trim();
-            });
-          return {
-            InvName,
-            InvCompany,
-            InvTimezone,
-          };
-        });
-
-      if (d.length === 0) {
-        return alert("Failed to add investors");
-      }
-
-      d.forEach((entry) => {
-        dataToSubmit.InvName = [...dataToSubmit.InvName, entry.InvName];
-        dataToSubmit.InvCompany = [...dataToSubmit.InvCompany, entry.InvCompany];
-        dataToSubmit.InvTimezone = [
-          ...dataToSubmit.InvTimezone,
-          entry.InvTimezone,
-        ];
-      });
+      const text = await csvFile.text()
+      const rows = text.split("\n").slice(1) // Assuming the first row is headers
+      rows.forEach((row) => {
+        const [_InvId, InvName, InvCompany, InvTimezone, InvEmail] = row.split(",").map((item) => item.trim())
+        dataToSubmit.InvName.push(InvName)
+        dataToSubmit.InvCompany.push(InvCompany)
+        dataToSubmit.InvTimezone.push(InvTimezone)
+        dataToSubmit.InvEmail.push(InvEmail)
+      })
     } else {
-      const d = manualEntries.filter(
-        (entry) => !entry.InvName || !entry.InvCompany || !entry.InvTimezone
-      ) as Array<Investor>;
-      
-
-      if (d.length === 0) {
-        (manualEntries as Array<Investor>).forEach((entry: Investor) => {
-          console.log(entry);
-          
-          dataToSubmit.InvName = [...dataToSubmit.InvName, entry.InvName];
-          dataToSubmit.InvCompany = [
-            ...dataToSubmit.InvCompany,
-            entry.InvCompany,
-          ];
-          dataToSubmit.InvTimezone = [
-            ...dataToSubmit.InvTimezone,
-            entry.InvTimezone,
-          ];
-        });
-      } else {
-        return alert("Failed to add investors");
-      }
+      manualEntries.forEach((entry) => {
+        if (entry.InvName && entry.InvCompany && entry.InvTimezone && entry.InvEmail) {
+          dataToSubmit.InvName.push(entry.InvName)
+          dataToSubmit.InvCompany.push(entry.InvCompany)
+          dataToSubmit.InvTimezone.push(entry.InvTimezone)
+          dataToSubmit.InvEmail.push(entry.InvEmail)
+        }
+      })
     }
 
     try {
@@ -192,7 +166,7 @@ export default function InvestorTab() {
         await fetchInvestors()
         setIsAddDialogOpen(false)
         setCsvFile(null)
-        setManualEntries([{ InvName: '', InvCompany: '', InvTimezone: '' }])
+        setManualEntries([{ InvName: '', InvCompany: '', InvTimezone: '', InvEmail: '' }])
         toast({
           title: "Success",
           description: "Investors added successfully.",
@@ -202,7 +176,6 @@ export default function InvestorTab() {
       }
     } catch (error) {
       console.error('Error adding investors:', error)
-      setError('Failed to add investors. Please try again.')
       toast({
         title: "Error",
         description: "Failed to add investors. Please try again.",
@@ -211,149 +184,156 @@ export default function InvestorTab() {
     } finally {
       setbisLoading(false)
     }
-  };
+  }
 
   const handleEdit = (investor: Investor) => {
-    setEditingInvestor(investor);
-    setIsEditDialogOpen(true);
-  };
+    setEditingInvestor(investor)
+    setIsEditDialogOpen(true)
+  }
 
   const handleEditSubmit = async () => {
     setbisLoading(true)
-    if (!editingInvestor) return;
-
+    if (!editingInvestor) return
     try {
       const response = await fetch(
         `http://localhost:4000/api/investors/${editingInvestor.InvId}`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            InvName: editingInvestor.InvName,
-            InvCompany: editingInvestor.InvCompany,
-            InvTimezone: editingInvestor.InvTimezone,
-          }),
+          body: JSON.stringify(editingInvestor),
         }
-      );
-
+      )
       if (response.ok) {
-        const updatedInvestor = await response.json();
-        setInvestors(
-          investors.map((inv) =>
-            inv.InvId === updatedInvestor.InvId ? updatedInvestor : inv
-          )
-        );
-        setIsEditDialogOpen(false);
-        setEditingInvestor(null);
+        const updatedInvestor = await response.json()
+        setInvestors(investors.map((inv) => (inv.InvId === updatedInvestor.InvId ? updatedInvestor : inv)))
+        setIsEditDialogOpen(false)
+        setEditingInvestor(null)
         toast({
           title: "Success",
           description: "Investor updated successfully.",
-        });
+        })
       } else {
-        throw new Error("Failed to update investor");
+        throw new Error("Failed to update investor")
       }
     } catch (error) {
-      console.error("Error updating investor:", error);
+      console.error("Error updating investor:", error)
       toast({
         title: "Error",
         description: "Failed to update investor. Please try again.",
         variant: "destructive",
-      });
+      })
     } finally {
       setbisLoading(false)
     }
-  };
+  }
 
   const handleDelete = async (id: string) => {
     setbisLoading(true)
     try {
-      const response = await fetch(
-        `http://localhost:4000/api/investors/${id}`,
-        {
-          method: "DELETE",
-        }
-      );
-
+      const response = await fetch(`http://localhost:4000/api/investors/${id}`, {
+        method: "DELETE",
+      })
       if (response.ok) {
-        setInvestors(investors.filter((inv) => inv.InvId !== id));
+        setInvestors(investors.filter((inv) => inv.InvId !== id))
         toast({
           title: "Success",
           description: "Investor deleted successfully.",
-        });
+        })
       } else {
-        throw new Error("Failed to delete investor");
+        throw new Error("Failed to delete investor")
       }
     } catch (error) {
-      console.error("Error deleting investor:", error);
+      console.error("Error deleting investor:", error)
       toast({
         title: "Error",
         description: "Failed to delete investor. Please try again.",
         variant: "destructive",
-      });
+      })
     } finally {
       setbisLoading(false)
     }
-  };
+  }
 
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
         <Loader2 className="h-8 w-8 animate-spin" />
       </div>
-    );
+    )
   }
 
   return (
     <div className="p-6">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold">Investors</h2>
+      <div className="flex justify-between items-center mb-6">
+        <div>
+        <h2 className="text-2xl font-semibold">Investors</h2>
+        <span className="text-lg text-gray-500">Total Investors: {investors.length}</span>
+        </div>
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+          <Input
+            type="text"
+            placeholder="Search by name.."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10 pr-4 py-2 w-full"
+          />
+        </div>
         <Button onClick={() => setIsAddDialogOpen(true)}>Add Investor</Button>
       </div>
 
-      {investors.length === 0 ? (
+      {filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center h-64">
-          <p className="mb-4">No investors found.</p>
+          <p className="text-lg text-gray-500">No investors found. Please add some investors.</p>
         </div>
       ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Company</TableHead>
-              <TableHead>Timezone</TableHead>
-              <TableHead>Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {investors.map((investor) => (
-              <TableRow key={investor.InvId}>
-                <TableCell>{investor.InvName}</TableCell>
-                <TableCell>{investor.InvCompany}</TableCell>
-                <TableCell>{investor.InvTimezone}</TableCell>
-                <TableCell>
+        <>
+        <div style={{
+          overflowX: "auto",
+          height: "calc(100vh - 400px)"
+        }}> 
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filtered.map((investor) => (
+            <Card key={investor.InvId} className="flex flex-col">
+              <CardContent className="flex-grow p-6">
+                <div className="flex items-center mb-4">
+                  <Avatar className="h-10 w-10 mr-3">
+                    <AvatarFallback>{investor.InvName.slice(0, 2).toUpperCase()}</AvatarFallback>
+                  </Avatar>
+                  <h3 className="text-lg font-semibold">{investor.InvName}</h3>
+                </div>
+                <div className="flex items-center mb-2">
+                  <Building2 className="h-5 w-5 mr-2 text-gray-500" />
+                  <span>{investor.InvCompany}</span>
+                </div>
+                <div className="flex items-center mb-2">
+                  <Globe className="h-5 w-5 mr-2 text-gray-500" />
+                  <span>{investor.InvTimezone}</span>
+                </div>
+                <div className="flex items-center">
+                  <Mail className="h-5 w-5 mr-2 text-gray-500" />
+                  <span className="text-sm">{investor.InvEmail}</span>
+                </div>
+              </CardContent>
+              <CardFooter className="flex justify-end space-x-2 p-4 bg-gray-50">
+              { bisLoading ?
+        <Loader2 className="h-8 w-8 animate-spin" />
+     :       <Button variant="outline" size="sm" onClick={() => handleEdit(investor)}>
+                  <Edit className="h-4 w-4 mr-1" />
+                  Edit
+                </Button>}
                 { bisLoading ?
         <Loader2 className="h-8 w-8 animate-spin" />
-     :  <Button
-                    variant="outline"
-                    className="mr-2"
-                    onClick={() => handleEdit(investor)}
-                  >
-                    Edit
-                  </Button>}
-                  { bisLoading ?
-        <Loader2 className="h-8 w-8 animate-spin" />
-     :
-                  <Button
-                    variant="destructive"
-                    onClick={() => handleDelete(investor.InvId)}
-                  >
-                    Delete
-                  </Button>}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+     :         <Button variant="destructive" size="sm" onClick={() => handleDelete(investor.InvId)}>
+                  <Trash2 className="h-4 w-4 mr-1" />
+                  Delete
+                </Button> }
+              </CardFooter>
+            </Card>
+          ))}
+        </div>
+        </div>
+        </>
       )}
 
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
@@ -407,6 +387,17 @@ export default function InvestorTab() {
                       )
                     }
                   />
+                  <Input
+                    placeholder="Email"
+                    value={entry.InvEmail}
+                    onChange={(e) =>
+                      handleManualEntryChange(
+                        index,
+                        "InvEmail",
+                        e.target.value
+                      )
+                    }
+                  />
                   {index === manualEntries.length - 1 ? (
                     <Button
                       variant="outline"
@@ -427,10 +418,7 @@ export default function InvestorTab() {
                 </div>
               ))}
             </div>
-            {error && <p className="text-red-500">{error}</p>}
-            { bisLoading ?
-        <Loader2 className="h-8 w-8 animate-spin" />
-     :     <Button onClick={handleSubmit}>Submit</Button>}
+            <Button onClick={handleSubmit}>Submit</Button>
           </div>
         </DialogContent>
       </Dialog>
@@ -449,12 +437,7 @@ export default function InvestorTab() {
                 <Input
                   id="edit-name"
                   value={editingInvestor.InvName}
-                  onChange={(e) =>
-                    setEditingInvestor({
-                      ...editingInvestor,
-                      InvName: e.target.value,
-                    })
-                  }
+                  onChange={(e) => setEditingInvestor({ ...editingInvestor, InvName: e.target.value })}
                   className="col-span-3"
                 />
               </div>
@@ -465,12 +448,7 @@ export default function InvestorTab() {
                 <Input
                   id="edit-company"
                   value={editingInvestor.InvCompany}
-                  onChange={(e) =>
-                    setEditingInvestor({
-                      ...editingInvestor,
-                      InvCompany: e.target.value,
-                    })
-                  }
+                  onChange={(e) => setEditingInvestor({ ...editingInvestor, InvCompany: e.target.value })}
                   className="col-span-3"
                 />
               </div>
@@ -481,22 +459,26 @@ export default function InvestorTab() {
                 <Input
                   id="edit-timezone"
                   value={editingInvestor.InvTimezone}
-                  onChange={(e) =>
-                    setEditingInvestor({
-                      ...editingInvestor,
-                      InvTimezone: e.target.value,
-                    })
-                  }
+                  onChange={(e) => setEditingInvestor({ ...editingInvestor, InvTimezone: e.target.value })}
                   className="col-span-3"
                 />
               </div>
-              { bisLoading ?
-        <Loader2 className="h-8 w-8 animate-spin" />
-     :    <Button onClick={handleEditSubmit}>Update Investor</Button> }
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="edit-email" className="text-right">
+                  Email
+                </Label>
+                <Input
+                  id="edit-email"
+                  value={editingInvestor.InvEmail}
+                  onChange={(e) => setEditingInvestor({ ...editingInvestor, InvEmail: e.target.value })}
+                  className="col-span-3"
+                />
+              </div>
+              <Button onClick={handleEditSubmit}>Update Investor</Button>
             </div>
           )}
         </DialogContent>
       </Dialog>
     </div>
-  );
+  )
 }

@@ -1,18 +1,22 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Button } from "../ui/button"
 import { Input } from "../ui/input"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog"
 import { Label } from "../ui/label"
 import { Loader2, Plus, Minus } from 'lucide-react'
 import { useDropzone } from 'react-dropzone'
 import { useToast } from "../../hooks/use-toast"
+import { Avatar, AvatarFallback } from "../ui/avatar"
+import { Card, CardContent, CardFooter } from "../ui/card"
+import { Building2, Globe, Mail, Edit, Trash2 } from "lucide-react"
+import { Search } from "lucide-react"
 
 interface PortfolioCompany {
   PFId: number
   PFName: string
   PFCompany: string
   PFTimezone: string
+  PFEmail : string
   createdAt: string
   updatedAt: string
 }
@@ -21,6 +25,7 @@ interface ManualEntry {
   PFName: string
   PFCompany: string
   PFTimezone: string
+  PFEmail : string
 }
 
 export default function PortfolioTab() {
@@ -31,13 +36,25 @@ export default function PortfolioTab() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [editingCompany, setEditingCompany] = useState<PortfolioCompany | null>(null)
-  const [manualEntries, setManualEntries] = useState<ManualEntry[]>([{ PFName: '', PFCompany: '', PFTimezone: '' }])
+  const [manualEntries, setManualEntries] = useState<ManualEntry[]>([{ PFName: '', PFCompany: '', PFTimezone: '' , PFEmail : ''}])
   const [csvFile, setCsvFile] = useState<File | null>(null)
+  const [filtered, setFiltered] = useState<PortfolioCompany[]>([])
+  const [searchTerm, setSearchTerm] = useState("")
   const { toast } = useToast()
 
   useEffect(() => {
     fetchPortfolioCompanies()
   }, [])
+
+  useEffect(() => {
+    if (!isLoading && portfolioCompanies.length > 0) {
+    const filtered = portfolioCompanies.filter((portfolioCompanies) =>
+      portfolioCompanies.PFName.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    setFiltered(filtered)
+    }
+  }, [portfolioCompanies, searchTerm])
+
 
   const fetchPortfolioCompanies = async () => {
     setIsLoading(true)
@@ -49,6 +66,7 @@ export default function PortfolioTab() {
       }
       const data = await response.json()
       setPortfolioCompanies(data)
+      setFiltered(data)
     } catch (err) {
       setError('Error fetching portfolio companies. Please try again.')
       console.error('Error fetching portfolio companies:', err)
@@ -69,7 +87,7 @@ export default function PortfolioTab() {
   }
 
   const addManualEntry = () => {
-    setManualEntries([...manualEntries, { PFName: '', PFCompany: '', PFTimezone: '' }])
+    setManualEntries([...manualEntries, { PFName: '', PFCompany: '', PFTimezone: '' , PFEmail : ''}])
   }
 
   const removeManualEntry = (index: number) => {
@@ -85,7 +103,7 @@ export default function PortfolioTab() {
 
   const handleSubmit = async () => {
     setbisLoading(true)
-    if (!csvFile && manualEntries.every(entry => !entry.PFName && !entry.PFCompany && !entry.PFTimezone)) {
+    if (!csvFile && manualEntries.every(entry => !entry.PFName && !entry.PFCompany && !entry.PFTimezone && !entry.PFEmail)) {
       setError('Please provide either a CSV file or manual entries.')
       toast({
         title: "Error",
@@ -95,27 +113,29 @@ export default function PortfolioTab() {
       return
     }
 
-    let dataToSubmit: { PFName: string[], PFCompany: string[], PFTimezone: string[] }
+    let dataToSubmit: { PFName: string[], PFCompany: string[], PFTimezone: string[] , PFEmail : string[]} 
 
     if (csvFile) {
       const text = await csvFile.text()
       const rows = text.split('\n').slice(1) // Assuming the first row is headers
-      dataToSubmit = rows.reduce((acc: { PFName: string[], PFCompany: string[], PFTimezone: string[] }, row) => {
-        const [_PFId, PFName, PFCompany, PFTimezone] = row.split(',');
+      dataToSubmit = rows.reduce((acc: { PFName: string[], PFCompany: string[], PFTimezone: string[] , PFEmail : string[] }, row) => {
+        const [_PFId, PFName, PFCompany, PFTimezone, PFEmail] = row.split(',');
         acc.PFName.push(PFName.trim())
         acc.PFCompany.push(PFCompany.trim())
         acc.PFTimezone.push(PFTimezone.trim())
+        acc.PFEmail.push(PFEmail.trim())
         return acc
-      }, { PFName: [], PFCompany: [], PFTimezone: [] })
+      }, { PFName: [], PFCompany: [], PFTimezone: [], PFEmail : [] })
     } else {
-      dataToSubmit = manualEntries.reduce((acc: { PFName: string[], PFCompany: string[], PFTimezone: string[] }, entry) => {
+      dataToSubmit = manualEntries.reduce((acc: { PFName: string[], PFCompany: string[], PFTimezone: string[] , PFEmail : string[]}, entry) => {
         if (entry.PFName || entry.PFCompany || entry.PFTimezone) {
           acc.PFName.push(entry.PFName)
           acc.PFCompany.push(entry.PFCompany)
           acc.PFTimezone.push(entry.PFTimezone)
+          acc.PFEmail.push(entry.PFEmail)
         }
         return acc
-      }, { PFName: [], PFCompany: [], PFTimezone: [] })
+      }, { PFName: [], PFCompany: [], PFTimezone: [], PFEmail : [] })
     }
 
     try {
@@ -129,7 +149,7 @@ export default function PortfolioTab() {
         await fetchPortfolioCompanies()
         setIsAddDialogOpen(false)
         setCsvFile(null)
-        setManualEntries([{ PFName: '', PFCompany: '', PFTimezone: '' }])
+        setManualEntries([{ PFName: '', PFCompany: '', PFTimezone: '' , PFEmail : ''}])
         toast({
           title: "Success",
           description: "Portfolio companies added successfully.",
@@ -167,6 +187,7 @@ export default function PortfolioTab() {
           PFName: editingCompany.PFName,
           PFCompany: editingCompany.PFCompany,
           PFTimezone: editingCompany.PFTimezone,
+          PFEmail : editingCompany.PFEmail
         })
       })
 
@@ -235,42 +256,72 @@ export default function PortfolioTab() {
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold">Portfolio Companies</h2>
+        <div>
+        <h2 className="text-2xl font-semibold">Portfolio Companies</h2>
+        <span className="text-lg text-gray-500">Total Companies: {portfolioCompanies.length}</span>
+        </div>
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+          <Input
+            type="text"
+            placeholder="Search by name.."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10 pr-4 py-2 w-full"
+          />
+        </div>
         <Button onClick={() => setIsAddDialogOpen(true)}>Add Portfolio Company</Button>
       </div>
 
-      {portfolioCompanies.length === 0 ? (
+      {filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center h-64">
-          <p className="mb-4">No investors found.</p>
+          <p className="mb-4">No portfolio companies found. Add a new company to get started.</p>
         </div>
       ) : (
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>Company</TableHead>
-            <TableHead>Timezone</TableHead>
-            <TableHead>Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {portfolioCompanies.map((company) => (
-            <TableRow key={company.PFId}>
-              <TableCell>{company.PFName}</TableCell>
-              <TableCell>{company.PFCompany}</TableCell>
-              <TableCell>{company.PFTimezone}</TableCell>
-              <TableCell>
-              { bisLoading ?
-        <Loader2 className="h-8 w-8 animate-spin" />
-     :    <Button variant="outline" className="mr-2" onClick={() => handleEdit(company)}>Edit</Button> }
-            { bisLoading ?
-        <Loader2 className="h-8 w-8 animate-spin" />
-     :    <Button variant="destructive" onClick={() => handleDelete(company.PFId)}>Delete</Button>}
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>)}
+     <>
+     <div style={{
+       overflowX: "auto",
+       height: "calc(100vh - 400px)"
+     }}> 
+     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+       {filtered.map((portfolioCompanies) => (
+         <Card key={portfolioCompanies.PFId} className="flex flex-col">
+           <CardContent className="flex-grow p-6">
+             <div className="flex items-center mb-4">
+               <Avatar className="h-10 w-10 mr-3">
+                 <AvatarFallback>{portfolioCompanies.PFName.slice(0, 2).toUpperCase()}</AvatarFallback>
+               </Avatar>
+               <h3 className="text-lg font-semibold">{portfolioCompanies.PFName}</h3>
+             </div>
+             <div className="flex items-center mb-2">
+               <Building2 className="h-5 w-5 mr-2 text-gray-500" />
+               <span>{portfolioCompanies.PFCompany}</span>
+             </div>
+             <div className="flex items-center mb-2">
+               <Globe className="h-5 w-5 mr-2 text-gray-500" />
+               <span>{portfolioCompanies.PFTimezone}</span>
+             </div>
+             <div className="flex items-center">
+               <Mail className="h-5 w-5 mr-2 text-gray-500" />
+               <span className="text-sm">{portfolioCompanies.PFEmail}</span>
+             </div>
+           </CardContent>
+           <CardFooter className="flex justify-end space-x-2 p-4 bg-gray-50">
+             <Button variant="outline" size="sm" onClick={() => handleEdit(portfolioCompanies)}>
+               <Edit className="h-4 w-4 mr-1" />
+               Edit
+             </Button>
+             <Button variant="destructive" size="sm" onClick={() => handleDelete(portfolioCompanies.PFId)}>
+               <Trash2 className="h-4 w-4 mr-1" />
+               Delete
+             </Button>
+           </CardFooter>
+         </Card>
+       ))}
+     </div>
+     </div>
+     </>
+    )}
 
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
         <DialogContent className="max-w-3xl">
@@ -306,6 +357,11 @@ export default function PortfolioTab() {
                     value={entry.PFTimezone}
                     onChange={(e) => handleManualEntryChange(index, 'PFTimezone', e.target.value)}
                   />
+                  <Input
+                    placeholder="Email"
+                    value={entry.PFEmail}
+                    onChange={(e) => handleManualEntryChange(index, 'PFEmail', e.target.value)}
+                    />
                   {index === manualEntries.length - 1 ? (
                     <Button variant="outline" size="icon" onClick={addManualEntry}>
                       <Plus className="h-4 w-4" />
@@ -363,6 +419,17 @@ export default function PortfolioTab() {
                   id="edit-timezone"
                   value={editingCompany.PFTimezone}
                   onChange={(e) => setEditingCompany({ ...editingCompany, PFTimezone: e.target.value })}
+                  className="col-span-3"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="edit-email" className="text-right">
+                  Email
+                </Label>
+                <Input
+                  id="edit-email"
+                  value={editingCompany.PFEmail}
+                  onChange={(e) => setEditingCompany({ ...editingCompany, PFEmail: e.target.value })}
                   className="col-span-3"
                 />
               </div>

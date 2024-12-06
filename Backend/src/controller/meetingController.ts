@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { Op } from 'sequelize';
+import { Op, QueryTypes } from 'sequelize';
 import { sendResponse, handleError } from '../utils/controllerUtils';
 import { meetingsSchema } from '../models/meetings';
  import { nonmeetingsSchema } from '../models/nonmeeting';
@@ -122,12 +122,12 @@ export const createMeeting = async (req: Request, res: Response) => {
   }
 };
 
+
 export const updateMeeting = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const { SelId, date, startTime, endTime, duration } = req.body;
 
-    // Validate the selection exists
     const selection = await selectionsSchema.findByPk(SelId, {
       include: ['Investor', 'PortfolioCompany']
     });
@@ -136,40 +136,45 @@ export const updateMeeting = async (req: Request, res: Response) => {
       return sendResponse(res, 400, { message: 'Invalid Selection ID' });
     }
 
-    // Check for overlapping meetings
-    const overlappingMeeting = await meetingsSchema.findOne({
-      where: {
-        id: { [Op.ne]: id },
-        SelId,
-        date,
-        [Op.or]: [
-          {
-            startTime: {
-              [Op.lt]: endTime
-            },
-            endTime: {
-              [Op.gt]: startTime
-            }
-          }
-        ]
-      }
-    });
+    const { InvId } = selection.Investor;
+    const { PFId } = selection.PortfolioCompany;
 
-    if (overlappingMeeting) {
-      return sendResponse(res, 400, { message: 'Overlapping meeting exists' });
-    }
-
-    // Check if the meeting time is within available slots
+    const query = `
+    SELECT *
+    FROM "Meetings" m
+    INNER JOIN "Selections" s ON m."SelId" = s."SelId"
+    WHERE m.id != :id
+      AND m.date = :date
+      AND (
+        (m."startTime" < :endTime AND m."endTime" > :startTime)
+        AND (
+          s."InvId" = :InvId OR s."PFId" = :PFId
+        )
+      );
+  `;
+  
+  const overlappingMeeting = await meetingsSchema.sequelize.query(query, {
+    replacements: {
+      id, 
+      date, 
+      startTime, 
+      endTime, 
+      InvId, 
+      PFId, 
+    },
+    type: QueryTypes.SELECT,
+  });
+  
+  if (overlappingMeeting.length > 0) {
+    return sendResponse(res, 400, { message: 'Overlapping meeting exists' });
+  }
+  
     const investorSlot = await availabilitySlotsSchema.findOne({
       where: {
         timezone: selection.Investor.InvTimezone,
         date,
-        startTime: {
-          [Op.lte]: startTime
-        },
-        endTime: {
-          [Op.gte]: endTime
-        }
+        startTime: { [Op.lte]: startTime },
+        endTime: { [Op.gte]: endTime }
       }
     });
 
@@ -177,12 +182,8 @@ export const updateMeeting = async (req: Request, res: Response) => {
       where: {
         timezone: selection.PortfolioCompany.PFTimezone,
         date,
-        startTime: {
-          [Op.lte]: startTime
-        },
-        endTime: {
-          [Op.gte]: endTime
-        }
+        startTime: { [Op.lte]: startTime },
+        endTime: { [Op.gte]: endTime }
       }
     });
 
@@ -190,6 +191,7 @@ export const updateMeeting = async (req: Request, res: Response) => {
       return sendResponse(res, 400, { message: 'Meeting time is not within available slots' });
     }
 
+    // Update the meeting
     const [updatedRowsCount, updatedMeetings] = await meetingsSchema.update(
       { SelId, date, startTime, endTime, duration },
       {
@@ -199,14 +201,15 @@ export const updateMeeting = async (req: Request, res: Response) => {
     );
 
     if (updatedRowsCount > 0) {
-      sendResponse(res, 200, updatedMeetings[0]);
+      return sendResponse(res, 200, updatedMeetings[0]);
     } else {
-      sendResponse(res, 404, { message: 'Meeting not found' });
+      return sendResponse(res, 404, { message: 'Meeting not found' });
     }
   } catch (error) {
     handleError(res, error);
   }
 };
+
 
 export const deleteMeeting = async (req: Request, res: Response) => {
   try {
@@ -399,6 +402,30 @@ export const generateMeetingSchedule = async (_req: Request, res: Response) => {
 }
 
 
-
+export const getUnscheduledMeetings = async (_req: Request, res: Response) => {
+  try {
+    const getallselIDfromMeetings = await meetingsSchema.findAll();
+    const getallselIdfromNonMeetings = await nonmeetingsSchema.findAll();
+    const selid = getallselIDfromMeetings.map((selid) => selid.SelId);
+    const selidnonmeetings = getallselIdfromNonMeetings.map((selid) => selid.SelId);
+    const allselid = selid.concat(selidnonmeetings);
+    const newselid = [...new Set(allselid)];
+    const selectiondata = await selectionsSchema.findAll({
+      where: {
+        SelId: {
+          [Op.notIn]: newselid
+        }
+      },
+      include: [
+        { model: investorsSchema, as: 'Investor' },
+        { model: portfolioCompaniesSchema, as: 'PortfolioCompany' }
+      ]
+    });
+  
+    sendResponse(res, 200, selectiondata);
+  } catch (error) {
+    handleError(res, error);
+  }
+}
 
 

@@ -1,18 +1,14 @@
 import { useState, useEffect } from "react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "../ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { Label } from "../ui/label";
 import { Loader2 } from "lucide-react";
 import { useToast } from "../../hooks/use-toast";
+import { Avatar, AvatarFallback } from "../ui/avatar";
+import { Card, CardContent, CardFooter } from "../ui/card";
+import { Building2, Edit, Trash2, IdCard, Cable } from "lucide-react";
+import { Search } from "lucide-react";
 
 interface Selection {
   SelId: number;
@@ -31,7 +27,7 @@ interface Selection {
 export default function SelectionTab() {
   const [selections, setSelections] = useState<Selection[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [bisLoading, setbisLoading] = useState(false)
+  const [bisLoading, setbisLoading] = useState(false);
   const [, setError] = useState<string | null>(null);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -39,11 +35,28 @@ export default function SelectionTab() {
     null
   );
   const [newSelection, setNewSelection] = useState({ InvId: "", PFId: "" });
+  const [filtered, setFiltered] = useState<Selection[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
   const { toast } = useToast();
 
   useEffect(() => {
     fetchSelections();
   }, []);
+
+  useEffect(() => {
+    if (!isLoading && selections.length > 0) {
+      const filtered = selections.filter(
+        (value) =>
+          value.Investor.InvName.toLowerCase().includes(
+            searchTerm.toLowerCase()
+          ) ||
+          value.PortfolioCompany.PFName.toLowerCase().includes(
+            searchTerm.toLowerCase()
+          )
+      );
+      setFiltered(filtered);
+    }
+  }, [selections, searchTerm]);
 
   const fetchSelections = async () => {
     setIsLoading(true);
@@ -69,7 +82,7 @@ export default function SelectionTab() {
   };
 
   const handleSubmit = async () => {
-    setbisLoading(true)
+    setbisLoading(true);
     try {
       const response = await fetch("http://localhost:4000/api/selections", {
         method: "POST",
@@ -103,8 +116,8 @@ export default function SelectionTab() {
         variant: "destructive",
       });
     } finally {
-        setbisLoading(false)
-        }
+      setbisLoading(false);
+    }
   };
 
   const handleEdit = (selection: Selection) => {
@@ -113,7 +126,7 @@ export default function SelectionTab() {
   };
 
   const handleEditSubmit = async () => {
-    setbisLoading(true)
+    setbisLoading(true);
     if (!editingSelection) return;
 
     try {
@@ -148,13 +161,12 @@ export default function SelectionTab() {
         variant: "destructive",
       });
     } finally {
-        setbisLoading(false)
-        }
-
+      setbisLoading(false);
+    }
   };
 
   const handleDelete = async (id: number) => {
-    setbisLoading(true)
+    setbisLoading(true);
     try {
       const response = await fetch(
         `http://localhost:4000/api/selections/${id}`,
@@ -180,9 +192,8 @@ export default function SelectionTab() {
         variant: "destructive",
       });
     } finally {
-        setbisLoading(false)
-        }
-        
+      setbisLoading(false);
+    }
   };
 
   if (isLoading) {
@@ -194,105 +205,188 @@ export default function SelectionTab() {
   }
 
   const gentrateSelection = async () => {
+    setbisLoading(true);
     try {
-        const response = await fetch("http://localhost:4000/api/selections/generateselections", {
+      const response = await fetch(
+        "http://localhost:4000/api/selections/generateselections",
+        {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-        });
-  
-        if (response.status === 201) {
-          await fetchSelections();
-          toast({
-            title: "Success",
-            description: "Selection added successfully.",
-          });
-        } else if (response.status === 400) {
-          const data = await response.json();
-          toast({
-            title: "Error",
-            description: data.message,
-            variant: "destructive",
-          });
-        } else {
-          throw new Error("Failed to add selection");
         }
-      } catch (error) {
-        console.error("Error adding selection:", error);
+      );
+
+      if (response.status === 201) {
+        await fetchSelections();
+        toast({
+          title: "Success",
+          description: "Selection added successfully.",
+        });
+      } else if (response.status === 400) {
+        const data = await response.json();
         toast({
           title: "Error",
-          description: "Failed to add selection. Please try again.",
+          description: data.message,
           variant: "destructive",
         });
+      } else {
+        throw new Error("Failed to add selection");
       }
-  }
+    } catch (error) {
+      console.error("Error adding selection:", error);
+      toast({
+        title: "Error",
+        description: "Failed to add selection. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setbisLoading(false);
+    }
+  };
 
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold">Selections</h2>
+        <div>
+          <h2 className="text-2xl font-semibold">Selections</h2>
+          <span className="text-lg text-gray-500">
+            Total Selections: {selections.length}
+          </span>
+        </div>
+
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+          <Input
+            type="text"
+            placeholder="Search by name.."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10 pr-4 py-2 w-full"
+          />
+        </div>
         <div className="space-x-2">
-        { bisLoading ?
-        <Loader2 className="h-8 w-8 animate-spin" />
-     :  <Button onClick={() => gentrateSelection()}>
-          Generate Selection
-        </Button> }
-         <Button onClick={() => setIsAddDialogOpen(true)}>
-          Add Selection
-        </Button>
+          {bisLoading ? (
+            <Loader2 className="h-8 w-8 animate-spin" />
+          ) : (
+            <Button onClick={() => gentrateSelection()}>
+              Generate Selection
+            </Button>
+          )}
+          {bisLoading ? (
+            <Loader2 className="h-8 w-8 animate-spin" />
+          ) : (
+            <Button onClick={() => setIsAddDialogOpen(true)}>
+              Add Selection
+            </Button>
+          )}
         </div>
       </div>
 
-      {selections.length === 0 ? (
-        <div className="flex justify-center items-center h-64">
-          <p>No selections found.</p>
-        </div>
+      {filtered.length === 0 ? (
+        <>
+          <div className="flex justify-center items-center h-64">
+            <div className="flex flex-col items-center">
+            <p  className="text-gray-500 text-lg mb-4">No selections found. Click the button to generate selections</p>
+          {bisLoading ? (
+            <Loader2 className="h-8 w-8 animate-spin" />
+          ) : (
+            <Button onClick={() => gentrateSelection()}>
+              Generate Selection
+            </Button>
+          )}
+          </div>
+          </div>
+        </>
       ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Selection ID</TableHead>
-              <TableHead>Portfolio Company ID</TableHead>
-              <TableHead>Investor ID</TableHead>
-              <TableHead>Portfolio Name</TableHead>
-              <TableHead>Portfolio Company</TableHead>
-              <TableHead>Investor Company</TableHead>
-              <TableHead>Investor Name</TableHead>
-              <TableHead>Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {selections.map((selection) => (
-              <TableRow key={selection.SelId}>
-                <TableCell>{selection.SelId}</TableCell>
-                <TableCell>{selection.PFId}</TableCell>
-                <TableCell>{selection.InvId}</TableCell>
-                <TableCell>{selection.PortfolioCompany.PFName}</TableCell>
-                <TableCell>{selection.PortfolioCompany.PFCompany}</TableCell>
-                <TableCell>{selection.Investor.InvCompany}</TableCell>
-                <TableCell>{selection.Investor.InvName}</TableCell>
-                <TableCell>
-                { bisLoading ?
-        <Loader2 className="h-8 w-8 animate-spin" />
-     :      <Button
-                    variant="outline"
-                    className="mr-2"
-                    onClick={() => handleEdit(selection)}
-                  >
-                    Edit
-                  </Button>}
-                  { bisLoading ?
-        <Loader2 className="h-8 w-8 animate-spin" />
-     :    <Button
-                    variant="destructive"
-                    onClick={() => handleDelete(selection.SelId)}
-                  >
-                    Delete
-                  </Button>}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        <>
+          <p className="text-sm text-gray-700 mb-4">
+            *Note selection are based on investors and portfolio companies and
+            aviailable timezones
+          </p>
+
+          <div
+            style={{
+              overflowX: "auto",
+              height: "calc(100vh - 400px)",
+            }}
+          >
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filtered.map((selection) => (
+                <Card key={selection.SelId} className="flex flex-col">
+                  <CardContent className="flex-grow p-6">
+                    <div className="flex items-center mb-4">
+                      <Avatar className="h-10 w-10 mr-3">
+                        <AvatarFallback>
+                          <Cable />
+                        </AvatarFallback>
+                      </Avatar>
+                      <h3 className="text-lg font-semibold">
+                        {selection.PortfolioCompany.PFName.split(" ")[0]}{" "}
+                        <span className="text-gray-500">paired with </span>
+                        {selection.Investor.InvName.split(" ")[0]}
+                      </h3>
+                    </div>
+                    <div className="flex items-center mb-2">
+                      <IdCard className="h-5 w-5 mr-2 text-gray-500" />
+                      <span>
+                        {" "}
+                        Selection ID:{" "}
+                        <span className="font-semibold">{selection.SelId}</span>
+                      </span>
+                    </div>
+                    <div className="flex items-center mb-2">
+                      <IdCard className="h-5 w-5 mr-2 text-gray-500" />
+                      <span>
+                        Portfolio Company ID:{" "}
+                        <span className="font-semibold">{selection.PFId}</span>{" "}
+                        & Investor ID:{" "}
+                        <span className="font-semibold">{selection.InvId}</span>{" "}
+                      </span>
+                    </div>
+                    <div className="flex items-center mb-2">
+                      <Building2 className="h-5 w-5 mr-2 text-gray-500" />
+                      <span>
+                        {" "}
+                        <span className="font-semibold">
+                          {selection.PortfolioCompany.PFCompany}
+                        </span>{" "}
+                        paired with{" "}
+                        <span className="font-semibold">
+                          {selection.Investor.InvCompany}
+                        </span>
+                      </span>
+                    </div>
+                  </CardContent>
+                  <CardFooter className="flex justify-end space-x-2 p-4 bg-gray-50">
+                    {bisLoading ? (
+                      <Loader2 className="h-8 w-8 animate-spin" />
+                    ) : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleEdit(selection)}
+                      >
+                        <Edit className="h-4 w-4 mr-1" />
+                        Edit
+                      </Button>
+                    )}
+                    {bisLoading ? (
+                      <Loader2 className="h-8 w-8 animate-spin" />
+                    ) : (
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => handleDelete(selection.SelId)}
+                      >
+                        <Trash2 className="h-4 w-4 mr-1" />
+                        Delete
+                      </Button>
+                    )}
+                  </CardFooter>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </>
       )}
 
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
@@ -327,9 +421,11 @@ export default function SelectionTab() {
                 className="col-span-3"
               />
             </div>
-            { bisLoading ?
-        <Loader2 className="h-8 w-8 animate-spin" />
-     :  <Button onClick={handleSubmit}>Add Selection</Button>}
+            {bisLoading ? (
+              <Loader2 className="h-8 w-8 animate-spin" />
+            ) : (
+              <Button onClick={handleSubmit}>Add Selection</Button>
+            )}
           </div>
         </DialogContent>
       </Dialog>
@@ -373,9 +469,11 @@ export default function SelectionTab() {
                   className="col-span-3"
                 />
               </div>
-              { bisLoading ?
-        <Loader2 className="h-8 w-8 animate-spin" />
-     :    <Button onClick={handleEditSubmit}>Update Selection</Button>}
+              {bisLoading ? (
+                <Loader2 className="h-8 w-8 animate-spin" />
+              ) : (
+                <Button onClick={handleEditSubmit}>Update Selection</Button>
+              )}
             </div>
           )}
         </DialogContent>

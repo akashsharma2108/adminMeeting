@@ -3,6 +3,7 @@ export type PortfolioCompany = {
   PFName: string;
   PFCompany: string;
   PFTimezone: string;
+  PFEmail: string;
   createdAt: Date;
   updatedAt: Date;
 };

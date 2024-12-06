@@ -35,7 +35,8 @@ export const createPortfolioCompany = async (req: Request, res: Response) => {
         const companiesData = data.PFName.map((name: string, index: number) => ({
           PFName: name,
           PFCompany: data.PFCompany[index],
-          PFTimezone: data.PFTimezone[index]
+          PFTimezone: data.PFTimezone[index],
+          PFEmail: data.PFEmail[index]
         }));
         newCompanies = await portfolioCompaniesSchema.bulkCreate(companiesData);
       } else {

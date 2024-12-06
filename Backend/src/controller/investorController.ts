@@ -34,7 +34,8 @@ export const createInvestor = async (req: Request, res: Response) => {
         const investorsData = data.InvName.map((name: string, index: number) => ({
           InvName: name,
           InvCompany: data.InvCompany[index],
-          InvTimezone: data.InvTimezone[index]
+          InvTimezone: data.InvTimezone[index],
+          InvEmail: data.InvEmail[index]
         }));
         newInvestors = await investorsSchema.bulkCreate(investorsData);
       } else {

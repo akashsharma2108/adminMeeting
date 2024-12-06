@@ -5,6 +5,7 @@ import { investorsSchema } from '../models/investors';
 import { portfolioCompaniesSchema } from '../models/portfolioCompanies';
 import { meetingsSchema } from '../models/meetings';
 import { nonmeetingsSchema } from '../models/nonmeeting';
+import { availabilitySlotsSchema } from '../models/availabilitySlot';
 
 
 export const getAllSelections = async (_req: Request, res: Response) => {
@@ -20,36 +21,59 @@ export const getAllSelections = async (_req: Request, res: Response) => {
     handleError(res, error);
   }
 };
-
 export const generateSelections = async (_req: Request, res: Response) => {
+  try {
+    // Clear existing data in Selections
+    await selectionsSchema.sequelize.query('TRUNCATE "Selections" CASCADE');
+    await selectionsSchema.sequelize.query('ALTER SEQUENCE "Selections_SelId_seq" RESTART WITH 1');
 
-try{
-  await selectionsSchema.sequelize.query('TRUNCATE "Selections" CASCADE');
-  await selectionsSchema.sequelize.query('ALTER SEQUENCE "Selections_SelId_seq" RESTART WITH 1');  
     const investors = await investorsSchema.findAll();
     const portfolioCompanies = await portfolioCompaniesSchema.findAll();
+    const availabilitySlots = await availabilitySlotsSchema.findAll();
 
-    if (investors.length === 0 || portfolioCompanies.length === 0) {
-      return sendResponse(res, 400, { message: 'Investors or Portfolio Companies data is missing' });
+    if (investors.length === 0 || portfolioCompanies.length === 0 || availabilitySlots.length === 0) {
+      return sendResponse(res, 400, { message: 'Missing data for Investors, Portfolio Companies, or Availability Slots' });
     }
 
-    const randomPairs = investors.map((investor) => {
-      return portfolioCompanies.map((portfolioCompany) => {
-        return {
-          InvId: investor.InvId,
-          PFId: portfolioCompany.PFId,
-        };
-      });
-    }).flat();
+    // Create a set of unique timezones from availability slots
+    const availableTimezones = new Set(availabilitySlots.map((slot) => slot.timezone));
 
-    const newSelections = await selectionsSchema.bulkCreate(randomPairs);
-    return sendResponse(res, 201, { message: 'Initial selections created', data: newSelections });
+    // Filter investors based on available timezones
+    const eligibleInvestors = investors.filter((investor) =>
+      availableTimezones.has(investor.InvTimezone)
+    );
+    
+    const nonEligibleInvestors = investors.filter((investor) =>
+      !availableTimezones.has(investor.InvTimezone)
+    );
+    const nonEligibleInvestorsIds = nonEligibleInvestors.map((investor) => 
+      portfolioCompanies.map((portfolioCompany) => ({
+        InvId: investor.InvId,
+        PFId: portfolioCompany.PFId,
+      }))
+    );
 
-} catch (error) {
+    if (eligibleInvestors.length === 0) {
+      return sendResponse(res, 400, { message: 'No investors matched available timezones' });
+    }
+   
+    // Generate valid pairs
+    const validPairs = eligibleInvestors.flatMap((investor) =>
+      portfolioCompanies.map((portfolioCompany) => ({
+        InvId: investor.InvId,
+        PFId: portfolioCompany.PFId,
+      }))
+    );
+
+    // Insert pairs into Selections table
+    const newSelections = await selectionsSchema.bulkCreate(validPairs);
+    return sendResponse(res, 201, { message: 'Selections created', data: newSelections , ineligible: nonEligibleInvestorsIds});
+
+  } catch (error) {
     handleError(res, error);
   }
-
 };
+
 
 
 export const getSelectionById = async (req: Request, res: Response) => {

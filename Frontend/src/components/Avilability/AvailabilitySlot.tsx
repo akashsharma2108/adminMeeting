@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Button } from "../ui/button"
 import { Input } from "../ui/input"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog"
 import { Label } from "../ui/label"
 import { Loader2, Plus, Minus } from 'lucide-react'
@@ -13,6 +12,9 @@ import "react-datepicker/dist/react-datepicker.css"
 import dayjs from 'dayjs'
 import utc from 'dayjs/plugin/utc'
 import timezone from 'dayjs/plugin/timezone'
+import { Card, CardContent, CardFooter } from "../ui/card"
+import { Globe, Edit, Trash2, CalendarDays ,ClockArrowUp, ClockArrowDown } from "lucide-react"
+import { Search } from "lucide-react"
 
 
 
@@ -46,11 +48,22 @@ export default function AvailabilityTab() {
   const [editingSlot, setEditingSlot] = useState<AvailabilitySlot | null>(null)
   const [manualEntries, setManualEntries] = useState<ManualEntry[]>([{ timezone: 'GMT', date: null, startTime: '', endTime: '' }])
   const [csvFile, setCsvFile] = useState<File | null>(null)
+  const [filtered, setFiltered] = useState<AvailabilitySlot[]>([])
+  const [searchTerm, setSearchTerm] = useState("")
   const { toast } = useToast()
 
   useEffect(() => {
     fetchAvailabilitySlots()
   }, [])
+
+  useEffect(() => {
+    if (!isLoading && availabilitySlots.length > 0) {
+    const filtered = availabilitySlots.filter((availabilitySlots) =>
+      availabilitySlots.timezone.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    setFiltered(filtered)
+    }
+  }, [availabilitySlots, searchTerm])
 
   const fetchAvailabilitySlots = async () => {
     setIsLoading(true)
@@ -256,44 +269,70 @@ export default function AvailabilityTab() {
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold">Availability Slots</h2>
+        <div>
+        <h2 className="text-2xl font-semibold">Availability Slots</h2>
+        <span className="text-lg text-gray-500">Total slots: {availabilitySlots.length}</span>
+        </div>
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+          <Input
+            type="text"
+            placeholder="Search by Timezone.."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10 pr-4 py-2 w-full"
+          />
+        </div>
           <Button onClick={() => setIsAddDialogOpen(true)}>Add Availability Slot</Button>
       </div>
 
       {availabilitySlots.length === 0 ? (
         <div className="flex flex-col items-center justify-center h-64">
-          <p className="mb-4">No investors found.</p>
+          <p className="mb-4">No Slot found. Please add new slots</p>
         </div>
       ) : (
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Date</TableHead>
-            <TableHead>Start Time</TableHead>
-            <TableHead>End Time</TableHead>
-            <TableHead>Timezone</TableHead>
-            <TableHead>Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {availabilitySlots.map((slot) => (
-            <TableRow key={slot.id}>
-              <TableCell>{slot.date}</TableCell>
-              <TableCell>{slot.startTime}</TableCell>
-              <TableCell>{slot.endTime}</TableCell>
-              <TableCell>{slot.timezone}</TableCell>
-              <TableCell>
-              { bisLoading ?
-        <Loader2 className="h-8 w-8 animate-spin" />
-     : <Button variant="outline" className="mr-2" onClick={() => handleEdit(slot)}>Edit</Button>}
-      { bisLoading ?
-        <Loader2 className="h-8 w-8 animate-spin" />
-       :   <Button variant="destructive" onClick={() => handleDelete(slot.id)}>Delete</Button>}
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>)}
+    <>
+    <div style={{
+      overflowX: "auto",
+      height: "calc(100vh - 400px)"
+    }}> 
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {filtered.map((investor) => (
+        <Card key={investor.id} className="flex flex-col">
+          <CardContent className="flex-grow p-6">
+            <div className="flex items-center mb-4">
+              <CalendarDays className="h-5 w-5 mr-2 text-gray-500" />
+              <h3 className="text-lg font-semibold">{investor.date}</h3>
+            </div>
+            <div className="flex items-center mb-2">
+              <ClockArrowUp className="h-5 w-5 mr-2 text-gray-500" />
+              <span>{investor.startTime}</span>
+            </div>
+            <div className="flex items-center mb-2">
+              <ClockArrowDown className="h-5 w-5 mr-2 text-gray-500" />
+              <span className="text-sm">{investor.endTime}</span>
+            </div>
+            <div className="flex items-center">
+              <Globe className="h-5 w-5 mr-2 text-gray-500" />
+              <span>{investor.timezone}</span>
+            </div>
+          </CardContent>
+          <CardFooter className="flex justify-end space-x-2 p-4 bg-gray-50">
+            <Button variant="outline" size="sm" onClick={() => handleEdit(investor)}>
+              <Edit className="h-4 w-4 mr-1" />
+              Edit
+            </Button>
+            <Button variant="destructive" size="sm" onClick={() => handleDelete(investor.id)}>
+              <Trash2 className="h-4 w-4 mr-1" />
+              Delete
+            </Button>
+          </CardFooter>
+        </Card>
+      ))}
+    </div>
+    </div>
+    </>
+    )}
 
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
         <DialogContent className="max-w-3xl">

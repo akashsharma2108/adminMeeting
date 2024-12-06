@@ -3,6 +3,7 @@ export type Investor = {
   InvName: string;
   InvCompany: string;
   InvTimezone: string;
+  InvEmail: string;
   createdAt: Date;
   updatedAt: Date;
 };
