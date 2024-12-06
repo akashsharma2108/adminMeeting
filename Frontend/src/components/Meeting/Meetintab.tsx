@@ -1,7 +1,13 @@
 import { useState, useEffect } from "react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "../ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "../ui/dialog";
 import { Label } from "../ui/label";
 import { Loader2 } from "lucide-react";
 import { useToast } from "../../hooks/use-toast";
@@ -22,9 +28,17 @@ import {
   CalendarOff,
 } from "lucide-react";
 import { Search } from "lucide-react";
-import { Alert, AlertDescription } from "../ui/alert"
-import { EditMeetingDialog } from './ Editmeetingdialog'
-import { AddNewMeetingDialog } from './Adnewmeetingdialog'
+import { Alert, AlertDescription } from "../ui/alert";
+import { EditMeetingDialog } from "./ Editmeetingdialog";
+import { AddNewMeetingDialog } from "./Adnewmeetingdialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../ui/select';
+
 interface Meeting {
   id: number;
   SelId: number;
@@ -79,7 +93,7 @@ interface Selection {
     PFCompany: string;
   };
 }
-const api = import.meta.env.VITE_APIURL
+const api = import.meta.env.VITE_APIURL;
 export default function MeetingTab() {
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -108,19 +122,23 @@ export default function MeetingTab() {
     endTime: "",
   });
   const [Editislotavailable, setEditislotavailable] = useState({});
-  const [selIds, setSelIds] = useState<string[]>([])
-  
-  
+  const [selIds, setSelIds] = useState<string[]>([]);
+  const [invName, setInvName] = useState('');
+  const [pfName, setPfName] = useState('');
+  const [pfCoName, setPfCoName] = useState('');
   const { toast } = useToast();
-
-  
 
   useEffect(() => {
     fetchMeetings();
   }, []);
 
   useEffect(() => {
-    if (!isLoading && meetings.length > 0 && unscheduledMeetings.length > 0 && slotdMeetings.length > 0) {
+    if (
+      !isLoading &&
+      meetings.length > 0 &&
+      unscheduledMeetings.length > 0 &&
+      slotdMeetings.length > 0
+    ) {
       if (meetType === "Conflicts") {
         const filtered = unscheduledMeetings.filter(
           (value) =>
@@ -153,27 +171,21 @@ export default function MeetingTab() {
               searchTerm.toLowerCase()
             )
         );
-        setMeetFilter(filtered);}
-        
+        setMeetFilter(filtered);
+      }
     }
-    
-  }, [meetings, unscheduledMeetings, slotdMeetings , searchTerm, meetType]);
+  }, [meetings, unscheduledMeetings, slotdMeetings, searchTerm, meetType]);
 
   const fetchMeetings = async () => {
     setIsLoading(true);
     setError(null);
     try {
       const response = await fetch(`${api}api/meetings`);
-      const unmeetresponse = await fetch(
-        `${api}api/nonmeeting`
-      );
-      const noslotresponse = await fetch(
-        `${api}api/meetings/unscheduled`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-        }
-      );
+      const unmeetresponse = await fetch(`${api}api/nonmeeting`);
+      const noslotresponse = await fetch(`${api}api/meetings/unscheduled`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
       if (!response.ok) {
         throw new Error("Failed to fetch meetings");
       }
@@ -207,7 +219,7 @@ export default function MeetingTab() {
       endTime: meeting.endTime,
     });
     setIsEmailDialogOpen(true);
-  }
+  };
 
   const handleSendMail = async () => {
     setbisLoading(true);
@@ -239,50 +251,59 @@ export default function MeetingTab() {
     }
   };
 
-
   useEffect(() => {
-    const getuniqueSelIdfromnonmeetings = unscheduledMeetings.map(meeting => meeting.SelId)
-    const getuniqueSelIdfrommeetings = meetings.map(meeting => meeting.SelId)
-    const getuniqueSelIdfromslotdMeetings = slotdMeetings.map(meeting => meeting.SelId)
+    const getuniqueSelIdfromnonmeetings = unscheduledMeetings.map(
+      (meeting) => meeting.SelId
+    );
+    const getuniqueSelIdfrommeetings = meetings.map((meeting) => meeting.SelId);
+    const getuniqueSelIdfromslotdMeetings = slotdMeetings.map(
+      (meeting) => meeting.SelId
+    );
 
-    const uniqueSelIds = Array.from(new Set([...getuniqueSelIdfromnonmeetings, ...getuniqueSelIdfrommeetings, ...getuniqueSelIdfromslotdMeetings]))
-    setSelIds(uniqueSelIds as any)
-  }, [meetings])
+    const uniqueSelIds = Array.from(
+      new Set([
+        ...getuniqueSelIdfromnonmeetings,
+        ...getuniqueSelIdfrommeetings,
+        ...getuniqueSelIdfromslotdMeetings,
+      ])
+    );
+    setSelIds(uniqueSelIds as any);
+  }, [meetings]);
 
   const handleAdd = () => {
-    setIsAddDialogOpen(true)
-  }
+    setIsAddDialogOpen(true);
+  };
 
   const handleSubmit = async (newMeeting: any) => {
-    setIsLoading(true)
+    setIsLoading(true);
     try {
       const response = await fetch(`${api}api/meetings`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(newMeeting),
-      })
+      });
 
       if (response.ok) {
-        await fetchMeetings()
-        setIsAddDialogOpen(false)
+        await fetchMeetings();
+        setIsAddDialogOpen(false);
         toast({
           title: "Success",
           description: "Meeting added successfully.",
-        })
+        });
       } else {
-        throw new Error("Failed to add meeting")
+        throw new Error("Failed to add meeting");
       }
     } catch (error) {
-      console.error("Error adding meeting:", error)
+      console.error("Error adding meeting:", error);
       toast({
         title: "Error",
         description: "Failed to add meeting. Please try again.",
         variant: "destructive",
-      })
+      });
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   const handleEdit = async (meeting: Meeting) => {
     try {
@@ -293,61 +314,58 @@ export default function MeetingTab() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ SelId: meeting.SelId }),
         }
-      )
+      );
       if (!noslotresponse.ok) {
-        throw new Error("Failed to fetch meetings")
+        throw new Error("Failed to fetch meetings");
       }
-      const allavibleslotdata = await noslotresponse.json()
-      setEditislotavailable(allavibleslotdata)
-      setEditingMeeting(meeting)
-      setIsEditDialogOpen(true)
+      const allavibleslotdata = await noslotresponse.json();
+      setEditislotavailable(allavibleslotdata);
+      setEditingMeeting(meeting);
+      setIsEditDialogOpen(true);
     } catch (err) {
-      console.error("Error fetching meetings:", err)
+      console.error("Error fetching meetings:", err);
       toast({
         title: "Error",
         description: "Failed to fetch meetings. Please try again.",
         variant: "destructive",
-      })
+      });
     }
-  }
+  };
 
   const handleEditSubmit = async (updatedMeeting: Meeting) => {
     try {
-      const response = await fetch(
-        `${api}api/meetings/${updatedMeeting.id}`,
-        {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            SelId: updatedMeeting.SelId,
-            date: updatedMeeting.date,
-            startTime: updatedMeeting.startTime,
-            endTime: updatedMeeting.endTime,
-            duration: updatedMeeting.duration,
-          }),
-        }
-      )
+      const response = await fetch(`${api}api/meetings/${updatedMeeting.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          SelId: updatedMeeting.SelId,
+          date: updatedMeeting.date,
+          startTime: updatedMeeting.startTime,
+          endTime: updatedMeeting.endTime,
+          duration: updatedMeeting.duration,
+        }),
+      });
 
       if (response.ok) {
-        await fetchMeetings()
-        setIsEditDialogOpen(false)
-        setEditingMeeting(null)
+        await fetchMeetings();
+        setIsEditDialogOpen(false);
+        setEditingMeeting(null);
         toast({
           title: "Success",
           description: "Meeting updated successfully.",
-        })
+        });
       } else {
-        throw new Error("Failed to update meeting")
+        throw new Error("Failed to update meeting");
       }
     } catch (error) {
-      console.error("Error updating meeting:", error)
+      console.error("Error updating meeting:", error);
       toast({
         title: "Error",
         description: "Failed to update meeting. Please try again.",
         variant: "destructive",
-      })
+      });
     }
-  }
+  };
 
   const handleDelete = async (id: number) => {
     setbisLoading(true);
@@ -380,14 +398,11 @@ export default function MeetingTab() {
   const handleGenerateMeetings = async () => {
     setbisLoading(true);
     try {
-      const response = await fetch(
-        `${api}api/meetings/generate`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ finalizeSchedule: true }),
-        }
-      );
+      const response = await fetch(`${api}api/meetings/generate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ finalizeSchedule: true }),
+      });
 
       if (response.ok) {
         await fetchMeetings();
@@ -474,6 +489,42 @@ export default function MeetingTab() {
     );
   }
 
+  const invNames = [
+    ...new Set(meetings?.map((mt: any) => mt.Selection.Investor.InvName)),
+  ];
+
+  const pfNames = [
+    ...new Set(
+      meetings?.map((mt: any) => mt.Selection.PortfolioCompany.PFName)
+    ),
+  ];
+
+  const pfCoNames = [
+    ...new Set(
+      meetings?.map((mt: any) => mt.Selection.PortfolioCompany.PFCompany)
+    ),
+  ];
+
+  function filterMeetings(value: string) {
+    setMeetFilter((_m) => {
+      return meetings.filter(
+        (mts) =>
+          mts.Selection.Investor.InvName.toLowerCase() ===
+            value.toLowerCase() ||
+          mts.Selection.PortfolioCompany.PFCompany.toLowerCase() ===
+            value.toLowerCase() ||
+          mts.Selection.PortfolioCompany.PFName.toLowerCase() === value.toLowerCase()
+      );
+    });
+  }
+
+  function resetFilters() {
+    setInvName('');
+    setPfName('');
+    setPfCoName('');
+    setMeetFilter(meetings);
+  }
+
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-4">
@@ -554,8 +605,8 @@ export default function MeetingTab() {
       ) : meetType === "No-Slots" ? (
         <p className="text-sm text-gray-700 mb-4">
           *Note : No-Slot available meetings are the meetings which are not
-          scheduled due to no available time slots for Investor or Portfolios. Add more time slots to
-          resolve conflicts.
+          scheduled due to no available time slots for Investor or Portfolios.
+          Add more time slots to resolve conflicts.
         </p>
       ) : (
         <p className="text-sm text-gray-700 mb-4">
@@ -564,123 +615,193 @@ export default function MeetingTab() {
           {slotdMeetings.length}
         </p>
       )}
-      {meetType === "Conflicts" ? 
-        <>
+
+
+{meetType !== 'Conflicts' && meetType !== 'No-Slots' ? (
         <div
           style={{
-            overflowX: "auto",
-            height: "calc(100vh - 400px)",
+            display: 'grid',
+            gap: '1rem',
+            gridTemplateColumns: '1fr 1fr 1fr 100px',
+            marginBottom: '1.2rem',
           }}
         >
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {unmeetFilter.map((meetings) => (
-              <Card key={meetings.id} className="flex flex-col">
-                <CardContent className="flex-grow p-6">
-                  <div className="flex items-center mb-4">
-                    <Avatar className="h-10 w-10 mr-3">
-                      <AvatarFallback>
-                        <Ban />
-                      </AvatarFallback>
-                    </Avatar>
-                    <h3 className="text-lg font-semibold">
-                      {meetings.Selection.PortfolioCompany.PFName.split(" ")[0]}{" "}
-                      <span className="text-gray-500">meeting with </span>
-                      {meetings.Selection.Investor.InvName.split(" ")[0]}
-                    </h3>
-                  </div>
-                  <div className="flex items-center mb-2">
-                    <IdCard className="h-5 w-5 mr-2 text-gray-500" />
-                    <span>
-                      {" "}
-                      Meeting Room ID:{" "}
-                      <span className="font-semibold">NA</span> &
-                      Selection ID:{" "}
-                      <span className="font-semibold">{meetings.SelId}</span>{" "}
-                    </span>
-                  </div>
-                  <div className="flex items-center mb-2">
-                    <CalendarX2 className="h-5 w-5 mr-2 text-gray-500" />
-                    <span>
-                    Conflict on{" "}
-                      <span className="font-semibold">{meetings.date}</span>{" "}
-                    </span>
-                  </div>
-                  <div className="flex items-center mb-2">
-                    <ClockAlert className="h-5 w-5 mr-2 text-gray-500" />
-                    <span>
-                    Conflict From{" "}
-                      <span className="font-semibold">
-                        {meetings.startTime}
-                      </span>{" "}
-                      To{" "}
-                      <span className="font-semibold">{meetings.endTime}</span>{" "}
-                    </span>
-                  </div>
-                  <div className="flex items-center mb-2">
-                    <Building2 className="h-5 w-5 mr-2 text-gray-500" />
-                    <span>
-                     B/W{" "}
-                      <span className="font-semibold">
-                        {meetings.Selection.PortfolioCompany.PFCompany}
-                      </span>{" "}
-                      {" "}
-                      <span className="font-semibold">
-                        {meetings.Selection.Investor.InvCompany}
-                      </span>
-                    </span>
-                  </div>
-                </CardContent>
-                <CardFooter className="flex justify-end space-x-2 p-4 bg-gray-50">
-                  {bisLoading ? (
-                    <Loader2 className="h-8 w-8 animate-spin" />
-                  ) : (
-                    <Button
-                      style={{
-                        backgroundColor: "green",
-                      }}
-                      size="sm"
-                      onClick={() => {}}
-                      disabled
-                    >
-                      <Send className="h-4 w-4 mr-1" />
-                      Send Mail
-                    </Button>
-                  )}
+          <Select value={invName} onValueChange={(e) => {
+            setInvName(e);
+            filterMeetings(e);
+          }}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select Invester Name" />
+            </SelectTrigger>
+            <SelectContent>
+              {invNames?.map((m) => (
+                <SelectItem key={m} value={m}>
+                  {m}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
-                  {bisLoading ? (
-                    <Loader2 className="h-8 w-8 animate-spin" />
-                  ) : (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleEdit(meetings)}
-                      disabled
-                    >
-                      <Edit className="h-4 w-4 mr-1" />
-                      Edit
-                    </Button>
-                  )}
-                  {bisLoading ? (
-                    <Loader2 className="h-8 w-8 animate-spin" />
-                  ) : (
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => handleDelete(meetings.id)}
-                      disabled
-                    >
-                      <Trash2 className="h-4 w-4 mr-1" />
-                      Delete
-                    </Button>
-                  )}
-                </CardFooter>
-              </Card>
-            ))}
-          </div>
+          <Select value={pfName} onValueChange={(e) => {
+            setPfName(e);
+            filterMeetings(e);
+          }}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select Founder Name" />
+            </SelectTrigger>
+            <SelectContent>
+              {pfNames?.map((p) => (
+                <SelectItem key={p} value={p}>
+                  {p}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={pfCoName} onValueChange={(e) => {
+            setPfCoName(e);
+            filterMeetings(e);
+          }}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select Portfolio Co. Name" />
+            </SelectTrigger>
+            <SelectContent>
+              {pfCoNames?.map((p) => (
+                <SelectItem key={p} value={p}>
+                  {p}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Button onClick={resetFilters}>Reset Filters</Button>
         </div>
-      </> : meetType === "No-Slots" ? 
-      <>
-      <div
+      ) : null}
+
+
+      {meetType === "Conflicts" ? (
+        <>
+          <div
+            style={{
+              overflowX: "auto",
+              height: "calc(100vh - 400px)",
+            }}
+          >
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {unmeetFilter.map((meetings) => (
+                <Card key={meetings.id} className="flex flex-col">
+                  <CardContent className="flex-grow p-6">
+                    <div className="flex items-center mb-4">
+                      <Avatar className="h-10 w-10 mr-3">
+                        <AvatarFallback>
+                          <Ban />
+                        </AvatarFallback>
+                      </Avatar>
+                      <h3 className="text-lg font-semibold">
+                        {
+                          meetings.Selection.PortfolioCompany.PFName.split(
+                            " "
+                          )[0]
+                        }{" "}
+                        <span className="text-gray-500">meeting with </span>
+                        {meetings.Selection.Investor.InvName.split(" ")[0]}
+                      </h3>
+                    </div>
+                    <div className="flex items-center mb-2">
+                      <IdCard className="h-5 w-5 mr-2 text-gray-500" />
+                      <span>
+                        {" "}
+                        Meeting Room ID:{" "}
+                        <span className="font-semibold">NA</span> & Selection
+                        ID:{" "}
+                        <span className="font-semibold">{meetings.SelId}</span>{" "}
+                      </span>
+                    </div>
+                    <div className="flex items-center mb-2">
+                      <CalendarX2 className="h-5 w-5 mr-2 text-gray-500" />
+                      <span>
+                        Conflict on{" "}
+                        <span className="font-semibold">{meetings.date}</span>{" "}
+                      </span>
+                    </div>
+                    <div className="flex items-center mb-2">
+                      <ClockAlert className="h-5 w-5 mr-2 text-gray-500" />
+                      <span>
+                        Conflict From{" "}
+                        <span className="font-semibold">
+                          {meetings.startTime}
+                        </span>{" "}
+                        To{" "}
+                        <span className="font-semibold">
+                          {meetings.endTime}
+                        </span>{" "}
+                      </span>
+                    </div>
+                    <div className="flex items-center mb-2">
+                      <Building2 className="h-5 w-5 mr-2 text-gray-500" />
+                      <span>
+                        B/W{" "}
+                        <span className="font-semibold">
+                          {meetings.Selection.PortfolioCompany.PFCompany}
+                        </span>{" "}
+                        <span className="font-semibold">
+                          {meetings.Selection.Investor.InvCompany}
+                        </span>
+                      </span>
+                    </div>
+                  </CardContent>
+                  <CardFooter className="flex justify-end space-x-2 p-4 bg-gray-50">
+                    {bisLoading ? (
+                      <Loader2 className="h-8 w-8 animate-spin" />
+                    ) : (
+                      <Button
+                        style={{
+                          backgroundColor: "green",
+                        }}
+                        size="sm"
+                        onClick={() => {}}
+                        disabled
+                      >
+                        <Send className="h-4 w-4 mr-1" />
+                        Send Mail
+                      </Button>
+                    )}
+
+                    {bisLoading ? (
+                      <Loader2 className="h-8 w-8 animate-spin" />
+                    ) : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleEdit(meetings)}
+                        disabled
+                      >
+                        <Edit className="h-4 w-4 mr-1" />
+                        Edit
+                      </Button>
+                    )}
+                    {bisLoading ? (
+                      <Loader2 className="h-8 w-8 animate-spin" />
+                    ) : (
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => handleDelete(meetings.id)}
+                        disabled
+                      >
+                        <Trash2 className="h-4 w-4 mr-1" />
+                        Delete
+                      </Button>
+                    )}
+                  </CardFooter>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </>
+      ) : meetType === "No-Slots" ? (
+        <>
+          <div
             style={{
               overflowX: "auto",
               height: "calc(100vh - 400px)",
@@ -720,23 +841,18 @@ export default function MeetingTab() {
                       </span>
                     </div>
                     <div className="flex items-center mb-2">
-                    <CalendarX2 className="h-5 w-5 mr-2 text-gray-500" />
-                    <span>
-                    Conflict on{" "}
-                      <span className="font-semibold">NA</span>{" "}
-                    </span>
-                  </div>
-                  <div className="flex items-center mb-2">
-                    <ClockAlert className="h-5 w-5 mr-2 text-gray-500" />
-                    <span>
-                    Conflict From{" "}
-                      <span className="font-semibold">
-                       NA
-                      </span>{" "}
-                      To{" "}
-                      <span className="font-semibold">NA</span>{" "}
-                    </span>
-                  </div>
+                      <CalendarX2 className="h-5 w-5 mr-2 text-gray-500" />
+                      <span>
+                        Conflict on <span className="font-semibold">NA</span>{" "}
+                      </span>
+                    </div>
+                    <div className="flex items-center mb-2">
+                      <ClockAlert className="h-5 w-5 mr-2 text-gray-500" />
+                      <span>
+                        Conflict From <span className="font-semibold">NA</span>{" "}
+                        To <span className="font-semibold">NA</span>{" "}
+                      </span>
+                    </div>
                     <div className="flex items-center mb-2">
                       <Building2 className="h-5 w-5 mr-2 text-gray-500" />
                       <span>
@@ -752,21 +868,21 @@ export default function MeetingTab() {
                     </div>
                   </CardContent>
                   <CardFooter className="flex justify-end space-x-2 p-4 bg-gray-50">
-                  {bisLoading ? (
-                    <Loader2 className="h-8 w-8 animate-spin" />
-                  ) : (
-                    <Button
-                      style={{
-                        backgroundColor: "green",
-                      }}
-                      size="sm"
-                      onClick={() => {}}
-                      disabled
-                    >
-                      <Send className="h-4 w-4 mr-1" />
-                      Send Mail
-                    </Button>
-                  )}
+                    {bisLoading ? (
+                      <Loader2 className="h-8 w-8 animate-spin" />
+                    ) : (
+                      <Button
+                        style={{
+                          backgroundColor: "green",
+                        }}
+                        size="sm"
+                        onClick={() => {}}
+                        disabled
+                      >
+                        <Send className="h-4 w-4 mr-1" />
+                        Send Mail
+                      </Button>
+                    )}
                     {bisLoading ? (
                       <Loader2 className="h-8 w-8 animate-spin" />
                     ) : (
@@ -798,121 +914,126 @@ export default function MeetingTab() {
               ))}
             </div>
           </div>
-      
-      
-      </>  
-      : 
+        </>
+      ) : (
         <>
-        <div
-          style={{
-            overflowX: "auto",
-            height: "calc(100vh - 400px)",
-          }}
-        >
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {meetFilter.map((meetings) => (
-              <Card key={meetings.id} className="flex flex-col">
-                <CardContent className="flex-grow p-6">
-                  <div className="flex items-center mb-4">
-                    <Avatar className="h-10 w-10 mr-3">
-                      <AvatarFallback>
-                        <Presentation />
-                      </AvatarFallback>
-                    </Avatar>
-                    <h3 className="text-lg font-semibold">
-                      {meetings.Selection.PortfolioCompany.PFName.split(" ")[0]}{" "}
-                      <span className="text-gray-500">meeting with </span>
-                      {meetings.Selection.Investor.InvName.split(" ")[0]}
-                    </h3>
-                  </div>
-                  <div className="flex items-center mb-2">
-                    <IdCard className="h-5 w-5 mr-2 text-gray-500" />
-                    <span>
-                      {" "}
-                      Meeting Room ID:{" "}
-                      <span className="font-semibold">{meetings.id}</span> &
-                      Selection ID:{" "}
-                      <span className="font-semibold">{meetings.SelId}</span>{" "}
-                    </span>
-                  </div>
-                  <div className="flex items-center mb-2">
-                    <CalendarCheck className="h-5 w-5 mr-2 text-gray-500" />
-                    <span>
-                      When{" "}
-                      <span className="font-semibold">{meetings.date}</span>{" "}
-                    </span>
-                  </div>
-                  <div className="flex items-center mb-2">
-                    <Clock9 className="h-5 w-5 mr-2 text-gray-500" />
-                    <span>
-                      From{" "}
-                      <span className="font-semibold">
-                        {meetings.startTime}
-                      </span>{" "}
-                      To{" "}
-                      <span className="font-semibold">{meetings.endTime}</span>{" "}
-                    </span>
-                  </div>
-                  <div className="flex items-center mb-2">
-                    <Building2 className="h-5 w-5 mr-2 text-gray-500" />
-                    <span>
-                      {" "}
-                      <span className="font-semibold">
-                        {meetings.Selection.PortfolioCompany.PFCompany}
-                      </span>{" "}
-                      B/W{" "}
-                      <span className="font-semibold">
-                        {meetings.Selection.Investor.InvCompany}
+          <div
+            style={{
+              overflowX: "auto",
+              height: "calc(100vh - 400px)",
+            }}
+          >
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {meetFilter.map((meetings) => (
+                <Card key={meetings.id} className="flex flex-col">
+                  <CardContent className="flex-grow p-6">
+                    <div className="flex items-center mb-4">
+                      <Avatar className="h-10 w-10 mr-3">
+                        <AvatarFallback>
+                          <Presentation />
+                        </AvatarFallback>
+                      </Avatar>
+                      <h3 className="text-lg font-semibold">
+                        {
+                          meetings.Selection.PortfolioCompany.PFName.split(
+                            " "
+                          )[0]
+                        }{" "}
+                        <span className="text-gray-500">meeting with </span>
+                        {meetings.Selection.Investor.InvName.split(" ")[0]}
+                      </h3>
+                    </div>
+                    <div className="flex items-center mb-2">
+                      <IdCard className="h-5 w-5 mr-2 text-gray-500" />
+                      <span>
+                        {" "}
+                        Meeting Room ID:{" "}
+                        <span className="font-semibold">{meetings.id}</span> &
+                        Selection ID:{" "}
+                        <span className="font-semibold">{meetings.SelId}</span>{" "}
                       </span>
-                    </span>
-                  </div>
-                </CardContent>
-                <CardFooter className="flex justify-end space-x-2 p-4 bg-gray-50">
-                  {bisLoading ? (
-                    <Loader2 className="h-8 w-8 animate-spin" />
-                  ) : (
-                    <Button
-                      style={{
-                        backgroundColor: "green",
-                      }}
-                      size="sm"
-                      onClick={() => handlemail(meetings)}
-                    >
-                      <Send className="h-4 w-4 mr-1" />
-                      Send Mail
-                    </Button>
-                  )}
+                    </div>
+                    <div className="flex items-center mb-2">
+                      <CalendarCheck className="h-5 w-5 mr-2 text-gray-500" />
+                      <span>
+                        When{" "}
+                        <span className="font-semibold">{meetings.date}</span>{" "}
+                      </span>
+                    </div>
+                    <div className="flex items-center mb-2">
+                      <Clock9 className="h-5 w-5 mr-2 text-gray-500" />
+                      <span>
+                        From{" "}
+                        <span className="font-semibold">
+                          {meetings.startTime}
+                        </span>{" "}
+                        To{" "}
+                        <span className="font-semibold">
+                          {meetings.endTime}
+                        </span>{" "}
+                      </span>
+                    </div>
+                    <div className="flex items-center mb-2">
+                      <Building2 className="h-5 w-5 mr-2 text-gray-500" />
+                      <span>
+                        {" "}
+                        <span className="font-semibold">
+                          {meetings.Selection.PortfolioCompany.PFCompany}
+                        </span>{" "}
+                        B/W{" "}
+                        <span className="font-semibold">
+                          {meetings.Selection.Investor.InvCompany}
+                        </span>
+                      </span>
+                    </div>
+                  </CardContent>
+                  <CardFooter className="flex justify-end space-x-2 p-4 bg-gray-50">
+                    {bisLoading ? (
+                      <Loader2 className="h-8 w-8 animate-spin" />
+                    ) : (
+                      <Button
+                        style={{
+                          backgroundColor: "green",
+                        }}
+                        size="sm"
+                        onClick={() => handlemail(meetings)}
+                      >
+                        <Send className="h-4 w-4 mr-1" />
+                        Send Mail
+                      </Button>
+                    )}
 
-                  {bisLoading ? (
-                    <Loader2 className="h-8 w-8 animate-spin" />
-                  ) : (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleEdit(meetings)}
-                    >
-                      <Edit className="h-4 w-4 mr-1" />
-                      Edit
-                    </Button>
-                  )}
-                  {bisLoading ? (
-                    <Loader2 className="h-8 w-8 animate-spin" />
-                  ) : (
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => handleDelete(meetings.id)}
-                    >
-                      <Trash2 className="h-4 w-4 mr-1" />
-                      Delete
-                    </Button>
-                  )}
-                </CardFooter>
-              </Card>
-            ))}
+                    {bisLoading ? (
+                      <Loader2 className="h-8 w-8 animate-spin" />
+                    ) : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleEdit(meetings)}
+                      >
+                        <Edit className="h-4 w-4 mr-1" />
+                        Edit
+                      </Button>
+                    )}
+                    {bisLoading ? (
+                      <Loader2 className="h-8 w-8 animate-spin" />
+                    ) : (
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => handleDelete(meetings.id)}
+                      >
+                        <Trash2 className="h-4 w-4 mr-1" />
+                        Delete
+                      </Button>
+                    )}
+                  </CardFooter>
+                </Card>
+              ))}
+            </div>
           </div>
-        </div>
-      </>}
+        </>
+      )}
 
       <AddNewMeetingDialog
         isOpen={isAddDialogOpen}
@@ -931,15 +1052,15 @@ export default function MeetingTab() {
         onSubmit={handleEditSubmit}
       />
 
-
       <Dialog open={isEmailDialogOpen} onOpenChange={setIsEmailDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>Send Email</DialogTitle>
           </DialogHeader>
-          <Alert variant="destructive" >
+          <Alert variant="destructive">
             <AlertDescription>
-              Please replace the mail IDs for both the investor and portfolio with working mail IDs so that you can see how mail is working.
+              Please replace the mail IDs for both the investor and portfolio
+              with working mail IDs so that you can see how mail is working.
             </AlertDescription>
           </Alert>
           <div className="grid gap-4 py-4">
@@ -950,7 +1071,9 @@ export default function MeetingTab() {
               <Input
                 id="invName"
                 value={emailData.invName}
-                onChange={(e) => setEmailData({ ...emailData, invName: e.target.value })}
+                onChange={(e) =>
+                  setEmailData({ ...emailData, invName: e.target.value })
+                }
                 className="col-span-3"
               />
             </div>
@@ -961,7 +1084,9 @@ export default function MeetingTab() {
               <Input
                 id="PFName"
                 value={emailData.PFName}
-                onChange={(e) => setEmailData({ ...emailData, PFName: e.target.value })}
+                onChange={(e) =>
+                  setEmailData({ ...emailData, PFName: e.target.value })
+                }
                 className="col-span-3"
               />
             </div>
@@ -972,7 +1097,9 @@ export default function MeetingTab() {
               <Input
                 id="InvEMAIL"
                 value={emailData.InvEMAIL}
-                onChange={(e) => setEmailData({ ...emailData, InvEMAIL: e.target.value })}
+                onChange={(e) =>
+                  setEmailData({ ...emailData, InvEMAIL: e.target.value })
+                }
                 className="col-span-3"
               />
             </div>
@@ -983,7 +1110,9 @@ export default function MeetingTab() {
               <Input
                 id="PFEMAIL"
                 value={emailData.PFEMAIL}
-                onChange={(e) => setEmailData({ ...emailData, PFEMAIL: e.target.value })}
+                onChange={(e) =>
+                  setEmailData({ ...emailData, PFEMAIL: e.target.value })
+                }
                 className="col-span-3"
               />
             </div>
@@ -995,7 +1124,9 @@ export default function MeetingTab() {
                 id="date"
                 type="date"
                 value={emailData.date}
-                onChange={(e) => setEmailData({ ...emailData, date: e.target.value })}
+                onChange={(e) =>
+                  setEmailData({ ...emailData, date: e.target.value })
+                }
                 className="col-span-3"
               />
             </div>
@@ -1007,7 +1138,9 @@ export default function MeetingTab() {
                 id="startTime"
                 type="time"
                 value={emailData.startTime}
-                onChange={(e) => setEmailData({ ...emailData, startTime: e.target.value })}
+                onChange={(e) =>
+                  setEmailData({ ...emailData, startTime: e.target.value })
+                }
                 className="col-span-3"
               />
             </div>
@@ -1019,14 +1152,18 @@ export default function MeetingTab() {
                 id="endTime"
                 type="time"
                 value={emailData.endTime}
-                onChange={(e) => setEmailData({ ...emailData, endTime: e.target.value })}
+                onChange={(e) =>
+                  setEmailData({ ...emailData, endTime: e.target.value })
+                }
                 className="col-span-3"
               />
             </div>
           </div>
           <DialogFooter>
             <Button onClick={handleSendMail} disabled={bisLoading}>
-              {bisLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              {bisLoading ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : null}
               Send Email
             </Button>
           </DialogFooter>
