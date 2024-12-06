@@ -307,14 +307,18 @@ export default function PortfolioTab() {
              </div>
            </CardContent>
            <CardFooter className="flex justify-end space-x-2 p-4 bg-gray-50">
-             <Button variant="outline" size="sm" onClick={() => handleEdit(portfolioCompanies)}>
+           { bisLoading ?
+        <Loader2 className="h-8 w-8 animate-spin" />
+     :        <Button variant="outline" size="sm" onClick={() => handleEdit(portfolioCompanies)}>
                <Edit className="h-4 w-4 mr-1" />
                Edit
-             </Button>
-             <Button variant="destructive" size="sm" onClick={() => handleDelete(portfolioCompanies.PFId)}>
+             </Button>}
+             { bisLoading ?
+        <Loader2 className="h-8 w-8 animate-spin" />
+     :       <Button variant="destructive" size="sm" onClick={() => handleDelete(portfolioCompanies.PFId)}>
                <Trash2 className="h-4 w-4 mr-1" />
                Delete
-             </Button>
+             </Button>}
            </CardFooter>
          </Card>
        ))}
