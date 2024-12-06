@@ -5,8 +5,6 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Label } from "../ui/label";
 import { Loader2 } from "lucide-react";
 import { useToast } from "../../hooks/use-toast";
-import DatePicker from "react-datepicker";
-import { format } from "date-fns";
 import { Avatar, AvatarFallback } from "../ui/avatar";
 import { Card, CardContent, CardFooter } from "../ui/card";
 import {
@@ -25,7 +23,8 @@ import {
 } from "lucide-react";
 import { Search } from "lucide-react";
 import { Alert, AlertDescription } from "../ui/alert"
-
+import { EditMeetingDialog } from './ Editmeetingdialog'
+import { AddNewMeetingDialog } from './Adnewmeetingdialog'
 interface Meeting {
   id: number;
   SelId: number;
@@ -98,13 +97,6 @@ export default function MeetingTab() {
   const [unmeetFilter, setUnmeetFilter] = useState<UnscheduledMeeting[]>([]);
   const [slotFilter, setSlotFilter] = useState<Selection[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [newMeeting, setNewMeeting] = useState({
-    SelId: "",
-    date: "",
-    startTime: "",
-    endTime: "",
-    duration: 60,
-  });
   const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
   const [emailData, setEmailData] = useState({
     invName: "",
@@ -115,7 +107,13 @@ export default function MeetingTab() {
     startTime: "",
     endTime: "",
   });
+  const [Editislotavailable, setEditislotavailable] = useState({});
+  const [selIds, setSelIds] = useState<string[]>([])
+  
+  
   const { toast } = useToast();
+
+  
 
   useEffect(() => {
     fetchMeetings();
@@ -241,92 +239,115 @@ export default function MeetingTab() {
     }
   };
 
-  const handleSubmit = async () => {
-    setbisLoading(true);
+
+  useEffect(() => {
+    const getuniqueSelIdfromnonmeetings = unscheduledMeetings.map(meeting => meeting.SelId)
+    const getuniqueSelIdfrommeetings = meetings.map(meeting => meeting.SelId)
+    const getuniqueSelIdfromslotdMeetings = slotdMeetings.map(meeting => meeting.SelId)
+
+    const uniqueSelIds = Array.from(new Set([...getuniqueSelIdfromnonmeetings, ...getuniqueSelIdfrommeetings, ...getuniqueSelIdfromslotdMeetings]))
+    setSelIds(uniqueSelIds as any)
+  }, [meetings])
+
+  const handleAdd = () => {
+    setIsAddDialogOpen(true)
+  }
+
+  const handleSubmit = async (newMeeting: any) => {
+    setIsLoading(true)
     try {
       const response = await fetch(`${api}api/meetings`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(newMeeting),
-      });
+      })
 
       if (response.ok) {
-        await fetchMeetings();
-        setIsAddDialogOpen(false);
-        setNewMeeting({
-          SelId: "",
-          date: "",
-          startTime: "",
-          endTime: "",
-          duration: 60,
-        });
+        await fetchMeetings()
+        setIsAddDialogOpen(false)
         toast({
           title: "Success",
           description: "Meeting added successfully.",
-        });
+        })
       } else {
-        throw new Error("Failed to add meeting");
+        throw new Error("Failed to add meeting")
       }
     } catch (error) {
-      console.error("Error adding meeting:", error);
+      console.error("Error adding meeting:", error)
       toast({
         title: "Error",
         description: "Failed to add meeting. Please try again.",
         variant: "destructive",
-      });
+      })
     } finally {
-      setbisLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
-  const handleEdit = (meeting: Meeting) => {
-    setEditingMeeting(meeting);
-    setIsEditDialogOpen(true);
-  };
+  const handleEdit = async (meeting: Meeting) => {
+    try {
+      const noslotresponse = await fetch(
+        `${api}api/availabilityslots/allAviableslotforseletedselid`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ SelId: meeting.SelId }),
+        }
+      )
+      if (!noslotresponse.ok) {
+        throw new Error("Failed to fetch meetings")
+      }
+      const allavibleslotdata = await noslotresponse.json()
+      setEditislotavailable(allavibleslotdata)
+      setEditingMeeting(meeting)
+      setIsEditDialogOpen(true)
+    } catch (err) {
+      console.error("Error fetching meetings:", err)
+      toast({
+        title: "Error",
+        description: "Failed to fetch meetings. Please try again.",
+        variant: "destructive",
+      })
+    }
+  }
 
-
-  const handleEditSubmit = async () => {
-    setbisLoading(true);
-    if (!editingMeeting) return;
-
+  const handleEditSubmit = async (updatedMeeting: Meeting) => {
     try {
       const response = await fetch(
-        `${api}api/meetings/${editingMeeting.id}`,
+        `${api}api/meetings/${updatedMeeting.id}`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            SelId: editingMeeting.SelId,
-            date: editingMeeting.date,
-            startTime: editingMeeting.startTime,
-            endTime: editingMeeting.endTime,
-            duration: editingMeeting.duration,
+            SelId: updatedMeeting.SelId,
+            date: updatedMeeting.date,
+            startTime: updatedMeeting.startTime,
+            endTime: updatedMeeting.endTime,
+            duration: updatedMeeting.duration,
           }),
         }
-      );
+      )
 
       if (response.ok) {
-        await fetchMeetings();
-        setIsEditDialogOpen(false);
-        setEditingMeeting(null);
+        await fetchMeetings()
+        setIsEditDialogOpen(false)
+        setEditingMeeting(null)
         toast({
           title: "Success",
           description: "Meeting updated successfully.",
-        });
+        })
       } else {
-        throw new Error("Failed to update meeting");
+        throw new Error("Failed to update meeting")
       }
     } catch (error) {
-      console.error("Error updating meeting:", error);
+      console.error("Error updating meeting:", error)
       toast({
         title: "Error",
         description: "Failed to update meeting. Please try again.",
         variant: "destructive",
-      });
-    } finally {
-      setbisLoading(false);
+      })
     }
-  };
+  }
 
   const handleDelete = async (id: number) => {
     setbisLoading(true);
@@ -505,7 +526,7 @@ export default function MeetingTab() {
           />
         </div>
         <div className="space-x-2">
-          <Button onClick={() => setIsAddDialogOpen(true)}>Add Meeting</Button>
+          <Button onClick={() => handleAdd()}>Add Meeting</Button>
           {bisLoading ? (
             <Loader2 className="h-8 w-8 animate-spin" />
           ) : (
@@ -893,166 +914,22 @@ export default function MeetingTab() {
         </div>
       </>}
 
-      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Add New Meeting</DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="sel-id" className="text-right">
-                Selection ID
-              </Label>
-              <Input
-                id="sel-id"
-                value={newMeeting.SelId}
-                onChange={(e) =>
-                  setNewMeeting({ ...newMeeting, SelId: e.target.value })
-                }
-                className="col-span-3"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="date" className="text-right">
-                Date
-              </Label>
-              <div className="col-span-3">
-                <DatePicker
-                  selected={
-                    newMeeting.date ? new Date(newMeeting.date) : undefined
-                  }
-                  onSelect={(date) =>
-                    setNewMeeting({
-                      ...newMeeting,
-                      date: date ? format(date, "yyyy-MM-dd") : "",
-                    })
-                  }
-                  className="rounded-md border"
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="start-time" className="text-right">
-                Start Time
-              </Label>
-              <Input
-                id="start-time"
-                type="time"
-                value={newMeeting.startTime}
-                onChange={(e) =>
-                  setNewMeeting({ ...newMeeting, startTime: e.target.value })
-                }
-                className="col-span-3"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="end-time" className="text-right">
-                End Time
-              </Label>
-              <Input
-                id="end-time"
-                type="time"
-                value={newMeeting.endTime}
-                onChange={(e) =>
-                  setNewMeeting({ ...newMeeting, endTime: e.target.value })
-                }
-                className="col-span-3"
-              />
-            </div>
-            {bisLoading ? (
-              <Loader2 className="h-8 w-8 animate-spin" />
-            ) : (
-              <Button onClick={handleSubmit}>Add Meeting</Button>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
+      <AddNewMeetingDialog
+        isOpen={isAddDialogOpen}
+        onOpenChange={setIsAddDialogOpen}
+        onSubmit={handleSubmit}
+        isLoading={isLoading}
+        selIds={selIds}
+        api={api}
+      />
 
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit Meeting</DialogTitle>
-          </DialogHeader>
-          {editingMeeting && (
-            <div className="grid gap-4">
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="edit-sel-id" className="text-right">
-                  Selection ID
-                </Label>
-                <Input
-                  id="edit-sel-id"
-                  value={editingMeeting.SelId}
-                  onChange={(e) =>
-                    setEditingMeeting({
-                      ...editingMeeting,
-                      SelId: parseInt(e.target.value),
-                    })
-                  }
-                  className="col-span-3"
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="edit-date" className="text-right">
-                  Date
-                </Label>
-                <div className="col-span-3">
-                  <DatePicker
-                    selected={new Date(editingMeeting.date)}
-                    onSelect={(date) =>
-                      setEditingMeeting({
-                        ...editingMeeting,
-                        date: date
-                          ? format(date, "yyyy-MM-dd")
-                          : editingMeeting.date,
-                      })
-                    }
-                    className="rounded-md border"
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="edit-start-time" className="text-right">
-                  Start Time
-                </Label>
-                <Input
-                  id="edit-start-time"
-                  type="time"
-                  value={editingMeeting.startTime}
-                  onChange={(e) =>
-                    setEditingMeeting({
-                      ...editingMeeting,
-                      startTime: e.target.value,
-                    })
-                  }
-                  className="col-span-3"
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="edit-end-time" className="text-right">
-                  End Time
-                </Label>
-                <Input
-                  id="edit-end-time"
-                  type="time"
-                  value={editingMeeting.endTime}
-                  onChange={(e) =>
-                    setEditingMeeting({
-                      ...editingMeeting,
-                      endTime: e.target.value,
-                    })
-                  }
-                  className="col-span-3"
-                />
-              </div>
-              {bisLoading ? (
-                <Loader2 className="h-8 w-8 animate-spin" />
-              ) : (
-                <Button onClick={handleEditSubmit}>Update Meeting</Button>
-              )}
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      <EditMeetingDialog
+        isOpen={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
+        editingMeeting={editingMeeting}
+        editislotavailable={Editislotavailable}
+        onSubmit={handleEditSubmit}
+      />
 
 
       <Dialog open={isEmailDialogOpen} onOpenChange={setIsEmailDialogOpen}>

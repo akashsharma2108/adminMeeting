@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { sendResponse, handleError } from '../utils/controllerUtils';
 import { availabilitySlotsSchema } from '../models/availabilitySlot';
+import { selectionsSchema } from '../models/selections';
 
 export const getAllAvailabilitySlots = async (_req: Request, res: Response) => {
     try {
@@ -84,3 +85,51 @@ export const createAvailabilitySlot = async (req: Request, res: Response) => {
     }
   };
 
+  type Schedule = {
+    id: number;
+    timezone: string;
+    date: string;
+    startTime: string;
+    endTime: string;
+};
+
+type TransformedSchedule = {
+    [date: string]: { startTime: string; endTime: string }[];
+};
+
+  export const allAviableSLotforseletedselid = async (req: Request, res: Response) => {
+    try {
+      const { SelId } = req.body;
+      const selection = await selectionsSchema.findByPk(SelId, {
+        include: ['Investor', 'PortfolioCompany']
+      });
+        const { InvTimezone } = selection.Investor;
+        const slots = await availabilitySlotsSchema.findAll({
+          where: { timezone: InvTimezone }
+        });
+        
+        const transformData = (data: Schedule[]): TransformedSchedule => {
+            return data.reduce<TransformedSchedule>((acc, item) => {
+                const { date, startTime, endTime } = item;
+                
+                if (!acc[date]) {
+                    acc[date] = [];
+                }
+        
+                acc[date].push({ startTime, endTime });
+        
+                return acc;
+            }, {});
+        };
+     
+        const transformedData = transformData(slots as any);
+
+        if (transformedData) {
+          sendResponse(res, 200, transformedData);
+        } else {
+          sendResponse(res, 404, { message: 'Availability Slot not found' });
+        }
+    } catch (error) {
+      handleError(res, error);
+    }
+  }
