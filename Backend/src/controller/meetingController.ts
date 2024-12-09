@@ -227,6 +227,52 @@ export const deleteMeeting = async (req: Request, res: Response) => {
   }
 };
 
+// async function scheduleMeetings(availableSlots, selectionData) {
+//   const scheduledMeetings = [];
+//   const investorMeetings = new Map();
+//   const pfMeetings = new Map();
+//   const allInvIds = new Set(selectionData.map(s => s.InvId));
+//   const allPFIds = new Set(selectionData.map(s => s.PFId));
+//   const leftOutPFIds = new Set(allPFIds);
+
+//   for (const invId of allInvIds) {
+//     for (const pfId of allPFIds) {
+//       const selection = selectionData.find(s => s.InvId === invId && s.PFId === pfId);
+//       if (!selection) continue;
+
+//       let scheduled = false;
+//       for (const slot of availableSlots) {
+//         const slotKey = `${slot.date}-${slot.startTime}`;
+//         if (!investorMeetings.has(`${invId}-${slotKey}`) && !pfMeetings.has(`${pfId}-${slotKey}`)) {
+//           scheduledMeetings.push({
+//             selid: selection.SelId,
+//             pfid: pfId,
+//             invid: invId,
+//             date: slot.date,
+//             starttime: slot.startTime,
+//             endtime: slot.endTime,
+//             duration: 60
+//           });
+//           investorMeetings.set(`${invId}-${slotKey}`, true);
+//           pfMeetings.set(`${pfId}-${slotKey}`, true);
+//           leftOutPFIds.delete(pfId);
+//           scheduled = true;
+//           break;
+//         }
+//       }
+
+//       if (!scheduled) {
+//         leftOutPFIds.add(pfId);
+//       }
+//     }
+//   }
+
+//   return {
+//     scheduledMeetings,
+//     leftOutPFIds: Array.from(leftOutPFIds)
+//   };
+// }
+
 async function scheduleMeetings(availableSlots, selectionData) {
   const scheduledMeetings = [];
   const investorMeetings = new Map();
@@ -235,29 +281,53 @@ async function scheduleMeetings(availableSlots, selectionData) {
   const allPFIds = new Set(selectionData.map(s => s.PFId));
   const leftOutPFIds = new Set(allPFIds);
 
+  // Group available slots by date
+  const slotsByDate = availableSlots.reduce((acc, slot) => {
+    if (!acc[slot.date]) {
+      acc[slot.date] = [];
+    }
+    acc[slot.date].push(slot);
+    return acc;
+  }, {});
+
+  const dates = Object.keys(slotsByDate);
+  let dateIndex = 0;
+
   for (const invId of allInvIds) {
     for (const pfId of allPFIds) {
       const selection = selectionData.find(s => s.InvId === invId && s.PFId === pfId);
       if (!selection) continue;
 
       let scheduled = false;
-      for (const slot of availableSlots) {
-        const slotKey = `${slot.date}-${slot.startTime}`;
-        if (!investorMeetings.has(`${invId}-${slotKey}`) && !pfMeetings.has(`${pfId}-${slotKey}`)) {
-          scheduledMeetings.push({
-            selid: selection.SelId,
-            pfid: pfId,
-            invid: invId,
-            date: slot.date,
-            starttime: slot.startTime,
-            endtime: slot.endTime,
-            duration: 60
-          });
-          investorMeetings.set(`${invId}-${slotKey}`, true);
-          pfMeetings.set(`${pfId}-${slotKey}`, true);
-          leftOutPFIds.delete(pfId);
-          scheduled = true;
-          break;
+      let attemptedDates = 0;
+
+      while (!scheduled && attemptedDates < dates.length) {
+        const currentDate = dates[dateIndex];
+        const slotsForDate = slotsByDate[currentDate];
+
+        for (const slot of slotsForDate) {
+          const slotKey = `${slot.date}-${slot.startTime}`;
+          if (!investorMeetings.has(`${invId}-${slotKey}`) && !pfMeetings.has(`${pfId}-${slotKey}`)) {
+            scheduledMeetings.push({
+              selid: selection.SelId,
+              pfid: pfId,
+              invid: invId,
+              date: slot.date,
+              starttime: slot.startTime,
+              endtime: slot.endTime,
+              duration: 60
+            });
+            investorMeetings.set(`${invId}-${slotKey}`, true);
+            pfMeetings.set(`${pfId}-${slotKey}`, true);
+            leftOutPFIds.delete(pfId);
+            scheduled = true;
+            break;
+          }
+        }
+
+        if (!scheduled) {
+          dateIndex = (dateIndex + 1) % dates.length;
+          attemptedDates++;
         }
       }
 
@@ -273,8 +343,142 @@ async function scheduleMeetings(availableSlots, selectionData) {
   };
 }
 
+
+interface Meeting {
+  selid: number;
+  pfid: number;
+  invid: number;
+  date: string;
+  starttime: string;
+  endtime: string;
+  duration: number;
+}
+
+interface AvailableSlot {
+  id: number;
+  timezone: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+}
+
+interface BookedMeetings {
+  [date: string]: string[];
+}
+
+async function reducingConflicts(data: Meeting[], nonConflicts: Meeting[]) {
+  // Fetch selection data
+  const selectionData = await selectionsSchema.findAll({
+    where: {
+      SelId: {
+        [Op.in]: data.map(d => d.selid)
+      }
+    },
+    include: ['Investor', 'PortfolioCompany']
+  });
+
+  const allviableslots = await availabilitySlotsSchema.findAll();
+
+  const conflicts = {};
+  const newNonConflicts: Meeting[] = [];
+  const bookedMeetings: { [id: number]: BookedMeetings } = {};
+
+  // Initialize bookedMeetings with existing non-conflicts
+  for (const meeting of nonConflicts) {
+    addBookedMeeting(bookedMeetings, meeting.invid, meeting);
+    addBookedMeeting(bookedMeetings, meeting.pfid, meeting);
+  }
+
+  for (const selection of selectionData) {
+    const invId = selection.Investor.InvId;
+    const pfId = selection.PortfolioCompany.PFId;
+    const invTimezone = selection.Investor.InvTimezone;
+
+    // Get booked meetings for investor and portfolio company
+    const invAlreadyMeet = bookedMeetings[invId] || {};
+    const pfAlreadyMeet = bookedMeetings[pfId] || {};
+
+    // Get available slots in investor's timezone
+    const allAvailable = allviableslots.filter(slot => slot.timezone === invTimezone);
+
+    // Find non-conflicting slot
+    const nonConflictingSlot = findNonConflictingSlot(allAvailable as any, invAlreadyMeet as any, pfAlreadyMeet as any);
+
+    if (nonConflictingSlot) {
+      const newMeeting: Meeting = {
+        selid: selection.SelId,
+        pfid: pfId,
+        invid: invId,
+        date: nonConflictingSlot.date,
+        starttime: nonConflictingSlot.startTime,
+        endtime: nonConflictingSlot.endTime,
+        duration: calculateDuration(nonConflictingSlot.startTime, nonConflictingSlot.endTime)
+      };
+      newNonConflicts.push(newMeeting);
+
+      // Add this new meeting to bookedMeetings for both investor and portfolio company
+      addBookedMeeting(bookedMeetings, invId, newMeeting);
+      addBookedMeeting(bookedMeetings, pfId, newMeeting);
+    } else {
+      if (!conflicts[invId]) conflicts[invId] = {};
+      conflicts[invId][pfId] = { reason: 'No available slots' };
+    }
+  }
+
+  return { conflicts, nonConflicts: newNonConflicts };
+}
+
+function addBookedMeeting(bookedMeetings: { [id: number]: BookedMeetings }, id: number, meeting: Meeting) {
+  if (!bookedMeetings[id]) {
+    bookedMeetings[id] = {};
+  }
+  if (!bookedMeetings[id][meeting.date]) {
+    bookedMeetings[id][meeting.date] = [];
+  }
+  bookedMeetings[id][meeting.date].push(`${meeting.starttime} to ${meeting.endtime}`);
+}
+
+function findNonConflictingSlot(
+  availableSlots: AvailableSlot[],
+  invBookedMeetings: BookedMeetings,
+  pfBookedMeetings: BookedMeetings
+): AvailableSlot | null {
+  for (const slot of availableSlots) {
+    const isConflicting = 
+      isSlotConflicting(slot, invBookedMeetings) || 
+      isSlotConflicting(slot, pfBookedMeetings);
+    
+    if (!isConflicting) {
+      return slot;
+    }
+  }
+  return null;
+}
+
+function isSlotConflicting(slot: AvailableSlot, bookedMeetings: BookedMeetings): boolean {
+  if (!bookedMeetings[slot.date]) return false;
+  
+  return bookedMeetings[slot.date].some(bookedSlot => {
+    const [bookedStart, bookedEnd] = bookedSlot.split(' to ');
+    return (
+      (slot.startTime >= bookedStart && slot.startTime < bookedEnd) ||
+      (slot.endTime > bookedStart && slot.endTime <= bookedEnd) ||
+      (slot.startTime <= bookedStart && slot.endTime >= bookedEnd)
+    );
+  });
+}
+
+function calculateDuration(startTime: string, endTime: string): number {
+  const start = new Date(`1970-01-01T${startTime}Z`);
+  const end = new Date(`1970-01-01T${endTime}Z`);
+  return (end.getTime() - start.getTime()) / 60000; // Duration in minutes
+}
+
+
+
+
 async  function findConflicts(data) {
-  const conflicts = [];
+  let conflicts = [];
   const nonConflicts = [];
 
   // Helper function to convert time to minutes for easier comparison
@@ -320,7 +524,20 @@ async  function findConflicts(data) {
       }
     }
   }
-  
+
+ 
+
+   const newdata = await reducingConflicts(conflicts, nonConflicts);
+   console.log('Conflicts:', newdata);
+   if (Object.keys(newdata.conflicts).length === 0) {
+       conflicts = newdata.conflicts as any;
+       
+      } 
+
+    if (newdata.nonConflicts.length > 0) {
+        nonConflicts.push(...newdata.nonConflicts);
+      }
+
   return { conflicts, nonConflicts };
 }
 
@@ -378,16 +595,19 @@ export const generateMeetingSchedule = async (_req: Request, res: Response) => {
           endTime: meeting.endtime,
           duration: meeting.duration
         }));
-
-        const mapnonmeetings = conflicts.conflicts.map(meeting => ({
-          SelId: meeting.selid,
-          date: meeting.date,
-          startTime: meeting.starttime,
-          endTime: meeting.endtime,
-          duration: meeting.duration
-        }));
+        let nonmeetings = [];
+        if (Object.keys(conflicts.conflicts).length !== 0) {
+          const mapnonmeetings = conflicts.conflicts.map(meeting => ({
+            SelId: meeting.selid,
+            date: meeting.date,
+            startTime: meeting.starttime,
+            endTime: meeting.endtime,
+            duration: meeting.duration
+          }));
+           nonmeetings = await nonmeetingsSchema.bulkCreate(mapnonmeetings);
+        }
+        
         const scheduledMeetings = await meetingsSchema.bulkCreate(mappedMeetings);
-        const nonmeetings = await nonmeetingsSchema.bulkCreate(mapnonmeetings);
         sendResponse(res, 201, {
           totalmeetingsScheduled: scheduledMeetings.length,
           scheduledMeetings : scheduledMeetings,

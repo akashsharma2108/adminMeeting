@@ -1,11 +1,11 @@
+import { useState, useEffect } from "react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select"
-import { useState, useEffect } from "react";
-import { Button } from "../ui/button";
-import { Input } from "../ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
-import { Label } from "../ui/label";
-import { Loader2 } from "lucide-react";
-
+import { Button } from "../ui/button"
+import { Input } from "../ui/input"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog"
+import { Label } from "../ui/label"
+import { Loader2 } from 'lucide-react'
+import { Alert, AlertDescription } from "../ui/alert"
 
 interface Meeting {
   id: number
@@ -27,11 +27,18 @@ interface Meeting {
   }
 }
 
+type TimeSlot = {
+  startTime: string
+  endTime: string
+}
+
+type AvailableSlots = TimeSlot[] | ["NA"]
+
 interface EditMeetingDialogProps {
   isOpen: boolean
   onOpenChange: (open: boolean) => void
   editingMeeting: Meeting | null
-  editislotavailable: Record<string, Array<{ startTime: string; endTime: string }>>
+  editislotavailable: Record<string, AvailableSlots>
   onSubmit: (updatedMeeting: Meeting) => Promise<void>
 }
 
@@ -43,9 +50,14 @@ export function EditMeetingDialog({
   onSubmit
 }: EditMeetingDialogProps) {
   const [updatedMeeting, setUpdatedMeeting] = useState<Meeting | null>(null)
-  const [selectedDate, setSelectedDate] = useState<string>('')
-  const [availableTimes, setAvailableTimes] = useState<Array<{ startTime: string; endTime: string }>>([])
+  const [selectedDate, setSelectedDate] = useState<string>("")
+  const [availableTimes, setAvailableTimes] = useState<AvailableSlots>([])
   const [isLoading, setIsLoading] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+
+  const isValidTimeSlots = (slots: AvailableSlots): slots is TimeSlot[] => {
+    return Array.isArray(slots) && slots[0] !== "NA";
+  };
 
   useEffect(() => {
     if (editingMeeting) {
@@ -58,14 +70,27 @@ export function EditMeetingDialog({
   const handleDateChange = (date: string) => {
     setSelectedDate(date)
     setAvailableTimes(editislotavailable[date] || [])
-    setUpdatedMeeting(prev => prev ? { ...prev, date, startTime: '', endTime: '' } : null)
+    setUpdatedMeeting(prev => prev ? { ...prev, date, startTime: "", endTime: "" } : null)
+    setErrorMessage(null)
   }
 
   const handleStartTimeChange = (startTime: string) => {
-    setUpdatedMeeting(prev => prev ? { ...prev, startTime } : null)
+    setUpdatedMeeting(prev => prev ? { ...prev, startTime, endTime: "" } : null)
+    setErrorMessage(null)
   }
 
   const handleEndTimeChange = (endTime: string) => {
+    if (updatedMeeting && updatedMeeting.startTime) {
+      const start = new Date(`2000-01-01T${updatedMeeting.startTime}`)
+      const end = new Date(`2000-01-01T${endTime}`)
+      const diffInMinutes = (end.getTime() - start.getTime()) / 60000
+
+      if (diffInMinutes !== 60) {
+        setErrorMessage("Meeting time must be exactly one hour.")
+      } else {
+        setErrorMessage(null)
+      }
+    }
     setUpdatedMeeting(prev => prev ? { ...prev, endTime } : null)
   }
 
@@ -81,6 +106,9 @@ export function EditMeetingDialog({
       setIsLoading(false)
     }
   }
+
+  const isTimeSelectDisabled = !isValidTimeSlots(availableTimes);
+  const isUpdateButtonDisabled = !updatedMeeting?.startTime || !updatedMeeting?.endTime || errorMessage !== null
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -98,12 +126,6 @@ export function EditMeetingDialog({
                 disabled
                 id="edit-sel-id"
                 value={updatedMeeting.SelId}
-                onChange={(e) =>
-                  setUpdatedMeeting({
-                    ...updatedMeeting,
-                    SelId: parseInt(e.target.value),
-                  })
-                }
                 className="col-span-3"
               />
             </div>
@@ -134,16 +156,22 @@ export function EditMeetingDialog({
               <Select
                 value={updatedMeeting.startTime}
                 onValueChange={handleStartTimeChange}
+                disabled={isTimeSelectDisabled}
               >
                 <SelectTrigger className="col-span-3">
                   <SelectValue placeholder="Select start time" />
                 </SelectTrigger>
                 <SelectContent>
-                  {availableTimes.map((slot) => (
-                    <SelectItem key={slot.startTime} value={slot.startTime}>
-                      {slot.startTime}
-                    </SelectItem>
-                  ))}
+                  {(() => {
+                    if (isValidTimeSlots(availableTimes)) {
+                      return availableTimes.map((slot: TimeSlot) => (
+                        <SelectItem key={slot.startTime} value={slot.startTime}>
+                          {slot.startTime}
+                        </SelectItem>
+                      ));
+                    }
+                    return null;
+                  })()}
                 </SelectContent>
               </Select>
             </div>
@@ -154,23 +182,46 @@ export function EditMeetingDialog({
               <Select
                 value={updatedMeeting.endTime}
                 onValueChange={handleEndTimeChange}
+                disabled={isTimeSelectDisabled || !updatedMeeting.startTime}
               >
                 <SelectTrigger className="col-span-3">
                   <SelectValue placeholder="Select end time" />
                 </SelectTrigger>
                 <SelectContent>
-                  {availableTimes.map((slot) => (
-                    <SelectItem key={slot.endTime} value={slot.endTime}>
-                      {slot.endTime}
-                    </SelectItem>
-                  ))}
+                  {(() => {
+                    if (isValidTimeSlots(availableTimes)) {
+                      return availableTimes.map((slot: TimeSlot) => (
+                        <SelectItem key={slot.endTime} value={slot.endTime}>
+                          {slot.endTime}
+                        </SelectItem>
+                      ));
+                    }
+                    return null;
+                  })()}
                 </SelectContent>
               </Select>
             </div>
-            {isLoading ? (
+            {errorMessage && (
+              <Alert variant="destructive">
+                <AlertDescription>{errorMessage}</AlertDescription>
+              </Alert>
+            )}
+           
+          { isUpdateButtonDisabled && isTimeSelectDisabled ?(
+                <Alert variant="destructive">
+                    <AlertDescription>No time slot available for this date</AlertDescription>
+                </Alert>
+                ): null}
+            {
+             
+            
+            
+            isLoading ? (
               <Loader2 className="h-8 w-8 animate-spin mx-auto" />
             ) : (
-              <Button onClick={handleSubmit}>Update Meeting</Button>
+              <Button onClick={handleSubmit} disabled={isUpdateButtonDisabled}>
+                Update Meeting
+              </Button>
             )}
           </div>
         )}

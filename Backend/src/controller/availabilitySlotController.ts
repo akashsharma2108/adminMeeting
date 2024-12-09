@@ -2,6 +2,8 @@ import { Request, Response } from 'express';
 import { sendResponse, handleError } from '../utils/controllerUtils';
 import { availabilitySlotsSchema } from '../models/availabilitySlot';
 import { selectionsSchema } from '../models/selections';
+import { QueryTypes } from 'sequelize';
+import { meetingsSchema } from '../models/meetings';
 
 export const getAllAvailabilitySlots = async (_req: Request, res: Response) => {
     try {
@@ -85,51 +87,88 @@ export const createAvailabilitySlot = async (req: Request, res: Response) => {
     }
   };
 
-  type Schedule = {
-    id: number;
-    timezone: string;
-    date: string;
+ 
+
+  interface Slot {
     startTime: string;
     endTime: string;
-};
-
-type TransformedSchedule = {
-    [date: string]: { startTime: string; endTime: string }[];
-};
-
-  export const allAviableSLotforseletedselid = async (req: Request, res: Response) => {
+  }
+  
+  interface TransformedSchedule {
+    [date: string]: Slot[] | ["NA"];
+  }
+  
+  export const allAvailableSlotsForSelectedSelId = async (req: Request, res: Response) => {
     try {
       const { SelId } = req.body;
       const selection = await selectionsSchema.findByPk(SelId, {
         include: ['Investor', 'PortfolioCompany']
       });
-        const { InvTimezone } = selection.Investor;
-        const slots = await availabilitySlotsSchema.findAll({
-          where: { timezone: InvTimezone }
+  
+      if (!selection) {
+        return sendResponse(res, 404, { message: 'Selection not found' });
+      }
+  
+      const { InvTimezone } = selection.Investor;
+      const { InvId, PFId } = selection;
+  
+      const slots = await availabilitySlotsSchema.findAll({
+        where: { timezone: InvTimezone }
+      });
+  
+      const transformedData: TransformedSchedule = {};
+  
+      for (const slot of slots) {
+        const { date, startTime, endTime } = slot;
+        const dateString = date instanceof Date ? date.toISOString().split('T')[0] : date;
+  
+        const query = `
+          SELECT *
+          FROM "Meetings" m
+          INNER JOIN "Selections" s ON m."SelId" = s."SelId"
+          WHERE m."SelId" != :SelId
+            AND m.date = :date
+            AND (
+              (m."startTime" < :endTime AND m."endTime" > :startTime)
+              AND (
+                s."InvId" = :InvId OR s."PFId" = :PFId
+              )
+            );
+        `;
+  
+        const overlappingMeeting = await meetingsSchema.sequelize.query(query, {
+          replacements: {
+            SelId,
+            date: dateString,
+            startTime,
+            endTime,
+            InvId,
+            PFId,
+          },
+          type: QueryTypes.SELECT,
         });
-        
-        const transformData = (data: Schedule[]): TransformedSchedule => {
-            return data.reduce<TransformedSchedule>((acc, item) => {
-                const { date, startTime, endTime } = item;
-                
-                if (!acc[date]) {
-                    acc[date] = [];
-                }
-        
-                acc[date].push({ startTime, endTime });
-        
-                return acc;
-            }, {});
-        };
-     
-        const transformedData = transformData(slots as any);
-
-        if (transformedData) {
-          sendResponse(res, 200, transformedData);
-        } else {
-          sendResponse(res, 404, { message: 'Availability Slot not found' });
+  
+        if (!transformedData[dateString]) {
+          transformedData[dateString] = [];
         }
+  
+        if (overlappingMeeting.length === 0) {
+          (transformedData[dateString] as Slot[]).push({ startTime, endTime });
+        }
+      }
+  
+      // Mark dates with no available slots as ["NA"]
+      for (const dateString in transformedData) {
+        if (transformedData[dateString].length === 0) {
+          transformedData[dateString] = ["NA"];
+        }
+      }
+  
+      sendResponse(res, 200, transformedData);
     } catch (error) {
       handleError(res, error);
     }
-  }
+  };
+  
+  
+
