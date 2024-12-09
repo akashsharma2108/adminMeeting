@@ -29,7 +29,7 @@ export default function AdminPanelScheduler() {
   ];
 
   useEffect(() => {
-    const storedMainComponent = localStorage.getItem("maincomponent");
+    const storedMainComponent = localStorage.getItem("mainsscomponent");
     if (storedMainComponent === "true") {
       setMainComponent(true);
     }
@@ -76,7 +76,7 @@ export default function AdminPanelScheduler() {
           title: "Success",
           description: "Meetings generated successfully.",
         });
-        localStorage.setItem("maincomponent", "true");
+        localStorage.setItem("mainsscomponent", "true");
         setMainComponent(true);
       } else {
         throw new Error("Failed to generate meetings");

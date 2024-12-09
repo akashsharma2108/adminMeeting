@@ -528,7 +528,6 @@ async  function findConflicts(data) {
  
 
    const newdata = await reducingConflicts(conflicts, nonConflicts);
-   console.log('Conflicts:', newdata);
    if (Object.keys(newdata.conflicts).length === 0) {
        conflicts = newdata.conflicts as any;
        
