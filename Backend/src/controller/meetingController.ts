@@ -529,12 +529,8 @@ async  function findConflicts(data) {
 
    const newdata = await reducingConflicts(conflicts, nonConflicts);
    if (Object.keys(newdata.conflicts).length === 0) {
-
-         console.log("dsdsf",JSON.stringify(newdata.conflicts));
-       conflicts = newdata.conflicts as any;
-       
+       conflicts = newdata.conflicts as any;     
       } 
-      console.log(JSON.stringify(newdata.conflicts));
     if (newdata.nonConflicts.length > 0) {
         nonConflicts.push(...newdata.nonConflicts);
       }
