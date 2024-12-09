@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { Op, QueryTypes } from 'sequelize';
 import { sendResponse, handleError } from '../utils/controllerUtils';
 import { meetingsSchema } from '../models/meetings';
- import { nonmeetingsSchema } from '../models/nonmeeting';
+//  import { nonmeetingsSchema } from '../models/nonmeeting';
 import { selectionsSchema } from '../models/selections';
 import { availabilitySlotsSchema } from '../models/availabilitySlot';
 import { investorsSchema } from '../models/investors';
@@ -420,8 +420,8 @@ async function reducingConflicts(data: Meeting[], nonConflicts: Meeting[]) {
       addBookedMeeting(bookedMeetings, invId, newMeeting);
       addBookedMeeting(bookedMeetings, pfId, newMeeting);
     } else {
-      if (!conflicts[invId]) conflicts[invId] = {};
-      conflicts[invId][pfId] = { reason: 'No available slots' };
+      if (!conflicts[invId]) conflicts[invId] = {};    
+      conflicts[`${invId}-${pfId}`] = { reason: 'No available slots' };
     }
   }
 
@@ -529,10 +529,12 @@ async  function findConflicts(data) {
 
    const newdata = await reducingConflicts(conflicts, nonConflicts);
    if (Object.keys(newdata.conflicts).length === 0) {
+
+         console.log("dsdsf",JSON.stringify(newdata.conflicts));
        conflicts = newdata.conflicts as any;
        
       } 
-
+      console.log(JSON.stringify(newdata.conflicts));
     if (newdata.nonConflicts.length > 0) {
         nonConflicts.push(...newdata.nonConflicts);
       }
@@ -545,11 +547,11 @@ export const generateMeetingSchedule = async (_req: Request, res: Response) => {
       await meetingsSchema.destroy({
         truncate: true
       });
-      await nonmeetingsSchema.destroy({
-        truncate: true
-      });
+      // await nonmeetingsSchema.destroy({
+      //   truncate: true
+      // });
       await meetingsSchema.sequelize.query('ALTER SEQUENCE "public"."Meetings_id_seq" RESTART WITH 1');
-      await nonmeetingsSchema.sequelize.query('ALTER SEQUENCE "public"."nonMeetings_id_seq" RESTART WITH 1');
+     // await nonmeetingsSchema.sequelize.query('ALTER SEQUENCE "public"."nonMeetings_id_seq" RESTART WITH 1');
 
 
     const selectiondata = await selectionsSchema.findAll({
@@ -594,23 +596,22 @@ export const generateMeetingSchedule = async (_req: Request, res: Response) => {
           endTime: meeting.endtime,
           duration: meeting.duration
         }));
-        let nonmeetings = [];
-        if (Object.keys(conflicts.conflicts).length !== 0) {
-          const mapnonmeetings = conflicts.conflicts.map(meeting => ({
-            SelId: meeting.selid,
-            date: meeting.date,
-            startTime: meeting.starttime,
-            endTime: meeting.endtime,
-            duration: meeting.duration
-          }));
-           nonmeetings = await nonmeetingsSchema.bulkCreate(mapnonmeetings);
-        }
+        // let nonmeetings = [];
+        // if (Object.keys(conflicts.conflicts).length !== 0) {
+        //   const mapnonmeetings = conflicts.conflicts.map(meeting => ({
+        //     SelId: meeting.selid,
+        //     date: meeting.date,
+        //     startTime: meeting.starttime,
+        //     endTime: meeting.endtime,
+        //     duration: meeting.duration
+        //   }));
+        //    nonmeetings = await nonmeetingsSchema.bulkCreate(mapnonmeetings);
+        // }
         
         const scheduledMeetings = await meetingsSchema.bulkCreate(mappedMeetings);
         sendResponse(res, 201, {
           totalmeetingsScheduled: scheduledMeetings.length,
           scheduledMeetings : scheduledMeetings,
-          leftOutMeetings: nonmeetings
         })
 
 
@@ -624,11 +625,10 @@ export const generateMeetingSchedule = async (_req: Request, res: Response) => {
 export const getUnscheduledMeetings = async (_req: Request, res: Response) => {
   try {
     const getallselIDfromMeetings = await meetingsSchema.findAll();
-    const getallselIdfromNonMeetings = await nonmeetingsSchema.findAll();
+   
     const selid = getallselIDfromMeetings.map((selid) => selid.SelId);
-    const selidnonmeetings = getallselIdfromNonMeetings.map((selid) => selid.SelId);
-    const allselid = selid.concat(selidnonmeetings);
-    const newselid = [...new Set(allselid)];
+
+    const newselid = [...new Set(selid)];
     const selectiondata = await selectionsSchema.findAll({
       where: {
         SelId: {

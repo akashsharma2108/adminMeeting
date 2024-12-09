@@ -141,7 +141,7 @@ export default function CalendarView({ meetings, onEdit, onDelete, onSendMail, d
           Reset Filters
         </Button>
 
-        <Button variant="outline" onClick={onGenerate}>
+        <Button variant="outline" onClick={onGenerate} disabled={disabled}>
           Re-Generate 
         </Button>
 
