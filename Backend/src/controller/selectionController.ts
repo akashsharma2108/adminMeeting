@@ -6,6 +6,7 @@ import { portfolioCompaniesSchema } from '../models/portfolioCompanies';
 import { meetingsSchema } from '../models/meetings';
 import { nonmeetingsSchema } from '../models/nonmeeting';
 import { availabilitySlotsSchema } from '../models/availabilitySlot';
+import { Op } from 'sequelize';
 
 
 export const getAllSelections = async (_req: Request, res: Response) => {
@@ -183,3 +184,24 @@ export const deleteSelection = async (req: Request, res: Response) => {
   }
 };
 
+
+export const userselected = async (req: Request, res: Response) => {
+  const { SelId } = req.body;
+  // console.log(SelId);
+  try {  
+      // SelID is an array of SelId  now we need to keep only this SelId in the selection table and delete all othe  
+      const deletedRowsCount = await selectionsSchema.destroy({
+        where: {
+          SelId: {
+            [Op.notIn]: SelId
+          }
+        }
+      });
+
+      console.log(deletedRowsCount);
+
+      sendResponse(res, 200, { message: 'Selection deleted successfully' });
+  } catch (error) {
+    handleError(res, error);
+  } 
+}

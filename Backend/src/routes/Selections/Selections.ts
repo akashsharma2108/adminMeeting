@@ -1,5 +1,5 @@
 import express from 'express';
-import { getAllSelections, getSelectionById, createSelection, updateSelection, deleteSelection, generateSelections } from '../../controller/selectionController';
+import { getAllSelections, getSelectionById, createSelection, updateSelection, deleteSelection, generateSelections , userselected } from '../../controller/selectionController';
 
 const router = express.Router();
 
@@ -9,6 +9,6 @@ router.post('/', createSelection);
 router.put('/:id', updateSelection);
 router.delete('/:id', deleteSelection);
 router.post('/generateselections', generateSelections);
-
+router.post('/userselected', userselected);
 export default router;
 
