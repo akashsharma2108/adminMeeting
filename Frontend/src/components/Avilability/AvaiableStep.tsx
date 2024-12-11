@@ -3,7 +3,7 @@ import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { Label } from "../ui/label";
-import { Loader2, Plus, Minus } from "lucide-react";
+import { Loader2, Plus, Minus } from 'lucide-react';
 import { useDropzone } from "react-dropzone";
 import { useToast } from "../../hooks/use-toast";
 import { useEffect, useState, useCallback } from "react";
@@ -122,16 +122,17 @@ export default function AvaiableStep({onComplete, whatpage}: slotStepProps) {
          description: "Please provide either a CSV file or manual entries.",
          variant: "destructive",
        })
+       setbisLoading(false)
        return
      }
  
-     let dataToSubmit: { timezone: string[], date: string[], startTime: string[], endTime: string[] }
+     let dataToSubmit: { timezone: string[], date: string[], startTime: string[], endTime: string[], istStartTime?: string[], istEndTime?: string[] }
  
      if (csvFile) {
        const text = await csvFile.text()
        const rows = text.split('\n').slice(1) // Assuming the first row is headers
        dataToSubmit = rows.reduce((acc: { timezone: string[], date: string[], startTime: string[], endTime: string[] }, row) => {
-         const [_id,timezone, date, startTime, endTime] = row.split(',')
+         const [_id, timezone, date, startTime, endTime] = row.split(',')
          acc.timezone.push(timezone.trim())
          acc.date.push(date.trim())
          acc.startTime.push(startTime.trim())
@@ -139,22 +140,24 @@ export default function AvaiableStep({onComplete, whatpage}: slotStepProps) {
          return acc
        }, { timezone: [], date: [], startTime: [], endTime: [] })
      } else {
+       // Handle manual entries
        dataToSubmit = manualEntries.reduce((acc: { timezone: string[], date: string[], startTime: string[], endTime: string[] }, entry) => {
          if (entry.date && entry.startTime && entry.endTime) {
            acc.timezone.push(entry.timezone)
            acc.date.push(dayjs(entry.date).format('YYYY-MM-DD'))
-           acc.startTime.push(entry.startTime)
-           acc.endTime.push(entry.endTime)
-         }
+           acc.startTime.push(convertToIST(entry.date, entry.startTime, entry.timezone))
+           acc.endTime.push(convertToIST(entry.date, entry.endTime, entry.timezone))
+         }  
          return acc
        }, { timezone: [], date: [], startTime: [], endTime: [] })
      }
- 
+    
+
      try {
        const response = await fetch(`${api}api/availabilityslots`, {
          method: 'POST',
          headers: { 'Content-Type': 'application/json' },
-         body: JSON.stringify(dataToSubmit)
+         body: JSON.stringify(dataToSubmit) 
        })
  
        if (response.ok) {
@@ -503,3 +506,4 @@ export default function AvaiableStep({onComplete, whatpage}: slotStepProps) {
     </motion.div>
   );
 }
+

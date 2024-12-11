@@ -624,6 +624,8 @@ async function scheduleMeetingsfinal(
   const finalmeetings = scheduledMeetings.map((meeting) => ({
     SelId: meeting.SelId,
     date: meeting.date,
+    pfid : meeting.Selection.PFId,
+    invid : meeting.Selection.InvId,
     startTime: meeting.startTime,
     endTime: meeting.endTime,
     duration: meeting.duration,
@@ -631,6 +633,25 @@ async function scheduleMeetingsfinal(
 
   return finalmeetings;
 }
+
+function filterMeetings(meetings) {
+  const uniqueMap = new Map();
+  
+  return meetings.filter(meeting => {
+    const { date, startTime, endTime, pfid, invid } = meeting;
+    const pfidKey = `${date}-${startTime}-${endTime}-${pfid}`;
+    const invidKey = `${date}-${startTime}-${endTime}-${invid}`;
+    
+    if (!uniqueMap.has(pfidKey) && !uniqueMap.has(invidKey)) {
+      uniqueMap.set(pfidKey, true);
+      uniqueMap.set(invidKey, true);
+      return true;
+    }
+    return false;
+  });
+}
+
+
 
 export const generateMeetingSchedule = async (_req: Request, res: Response) => {
   try {
@@ -804,9 +825,9 @@ export const generateMeetingSchedule = async (_req: Request, res: Response) => {
       }
     }
 
-    const mainmeet = recheckdata.flat();
-    console.log(mainmeet);
+    const mainmeet =filterMeetings(recheckdata.flat());
     const scheduledMeetingsfinal = await meetingsSchema.bulkCreate(mainmeet);
+    
 
     sendResponse(res, 201, {
       totalmeetingsScheduled: scheduledMeetingsfinal.length,
