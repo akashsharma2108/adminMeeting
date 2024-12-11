@@ -1,21 +1,22 @@
-import { Request, Response } from 'express';
-import { Op, QueryTypes } from 'sequelize';
-import { sendResponse, handleError } from '../utils/controllerUtils';
-import { meetingsSchema } from '../models/meetings';
+import { Request, Response } from "express";
+import { Op, QueryTypes } from "sequelize";
+import { sendResponse, handleError } from "../utils/controllerUtils";
+import { meetingsSchema } from "../models/meetings";
 //  import { nonmeetingsSchema } from '../models/nonmeeting';
-import { selectionsSchema } from '../models/selections';
-import { availabilitySlotsSchema } from '../models/availabilitySlot';
-import { investorsSchema } from '../models/investors';
-import { portfolioCompaniesSchema } from '../models/portfolioCompanies';
-
+import { selectionsSchema } from "../models/selections";
+import { availabilitySlotsSchema } from "../models/availabilitySlot";
+import { investorsSchema } from "../models/investors";
+import { portfolioCompaniesSchema } from "../models/portfolioCompanies";
 
 export const getAllMeetings = async (_req: Request, res: Response) => {
   try {
     const meetings = await meetingsSchema.findAll({
-      include: [{
-        model: selectionsSchema,
-        include: ['Investor', 'PortfolioCompany']
-      }]
+      include: [
+        {
+          model: selectionsSchema,
+          include: ["Investor", "PortfolioCompany"],
+        },
+      ],
     });
     sendResponse(res, 200, meetings);
   } catch (error) {
@@ -27,15 +28,17 @@ export const getMeetingById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const meeting = await meetingsSchema.findByPk(id, {
-      include: [{
-        model: selectionsSchema,
-        include: ['Investor', 'PortfolioCompany']
-      }]
+      include: [
+        {
+          model: selectionsSchema,
+          include: ["Investor", "PortfolioCompany"],
+        },
+      ],
     });
     if (meeting) {
       sendResponse(res, 200, meeting);
     } else {
-      sendResponse(res, 404, { message: 'Meeting not found' });
+      sendResponse(res, 404, { message: "Meeting not found" });
     }
   } catch (error) {
     handleError(res, error);
@@ -48,11 +51,11 @@ export const createMeeting = async (req: Request, res: Response) => {
 
     // Validate the selection exists
     const selection = await selectionsSchema.findByPk(SelId, {
-      include: ['Investor', 'PortfolioCompany']
+      include: ["Investor", "PortfolioCompany"],
     });
 
     if (!selection) {
-      return sendResponse(res, 400, { message: 'Invalid Selection ID' });
+      return sendResponse(res, 400, { message: "Invalid Selection ID" });
     }
 
     // Check for overlapping meetings
@@ -63,18 +66,18 @@ export const createMeeting = async (req: Request, res: Response) => {
         [Op.or]: [
           {
             startTime: {
-              [Op.lt]: endTime
+              [Op.lt]: endTime,
             },
             endTime: {
-              [Op.gt]: startTime
-            }
-          }
-        ]
-      }
+              [Op.gt]: startTime,
+            },
+          },
+        ],
+      },
     });
 
     if (overlappingMeeting) {
-      return sendResponse(res, 400, { message: 'Overlapping meeting exists' });
+      return sendResponse(res, 400, { message: "Overlapping meeting exists" });
     }
 
     // Check if the meeting time is within available slots
@@ -83,12 +86,12 @@ export const createMeeting = async (req: Request, res: Response) => {
         timezone: selection.Investor.InvTimezone,
         date,
         startTime: {
-          [Op.lte]: startTime
+          [Op.lte]: startTime,
         },
         endTime: {
-          [Op.gte]: endTime
-        }
-      }
+          [Op.gte]: endTime,
+        },
+      },
     });
 
     const pfSlot = await availabilitySlotsSchema.findOne({
@@ -96,16 +99,18 @@ export const createMeeting = async (req: Request, res: Response) => {
         timezone: selection.PortfolioCompany.PFTimezone,
         date,
         startTime: {
-          [Op.lte]: startTime
+          [Op.lte]: startTime,
         },
         endTime: {
-          [Op.gte]: endTime
-        }
-      }
+          [Op.gte]: endTime,
+        },
+      },
     });
 
     if (!investorSlot || !pfSlot) {
-      return sendResponse(res, 400, { message: 'Meeting time is not within available slots' });
+      return sendResponse(res, 400, {
+        message: "Meeting time is not within available slots",
+      });
     }
 
     const newMeeting = await meetingsSchema.create({
@@ -113,7 +118,7 @@ export const createMeeting = async (req: Request, res: Response) => {
       date,
       startTime,
       endTime,
-      duration
+      duration,
     });
 
     sendResponse(res, 201, newMeeting);
@@ -122,18 +127,17 @@ export const createMeeting = async (req: Request, res: Response) => {
   }
 };
 
-
 export const updateMeeting = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const { SelId, date, startTime, endTime, duration } = req.body;
 
     const selection = await selectionsSchema.findByPk(SelId, {
-      include: ['Investor', 'PortfolioCompany']
+      include: ["Investor", "PortfolioCompany"],
     });
 
     if (!selection) {
-      return sendResponse(res, 400, { message: 'Invalid Selection ID' });
+      return sendResponse(res, 400, { message: "Invalid Selection ID" });
     }
 
     const { InvId } = selection.Investor;
@@ -152,30 +156,30 @@ export const updateMeeting = async (req: Request, res: Response) => {
         )
       );
   `;
-  
-  const overlappingMeeting = await meetingsSchema.sequelize.query(query, {
-    replacements: {
-      id, 
-      date, 
-      startTime, 
-      endTime, 
-      InvId, 
-      PFId, 
-    },
-    type: QueryTypes.SELECT,
-  });
-  
-  if (overlappingMeeting.length > 0) {
-    return sendResponse(res, 400, { message: 'Overlapping meeting exists' });
-  }
-  
+
+    const overlappingMeeting = await meetingsSchema.sequelize.query(query, {
+      replacements: {
+        id,
+        date,
+        startTime,
+        endTime,
+        InvId,
+        PFId,
+      },
+      type: QueryTypes.SELECT,
+    });
+
+    if (overlappingMeeting.length > 0) {
+      return sendResponse(res, 400, { message: "Overlapping meeting exists" });
+    }
+
     const investorSlot = await availabilitySlotsSchema.findOne({
       where: {
         timezone: selection.Investor.InvTimezone,
         date,
         startTime: { [Op.lte]: startTime },
-        endTime: { [Op.gte]: endTime }
-      }
+        endTime: { [Op.gte]: endTime },
+      },
     });
 
     const pfSlot = await availabilitySlotsSchema.findOne({
@@ -183,12 +187,14 @@ export const updateMeeting = async (req: Request, res: Response) => {
         timezone: selection.PortfolioCompany.PFTimezone,
         date,
         startTime: { [Op.lte]: startTime },
-        endTime: { [Op.gte]: endTime }
-      }
+        endTime: { [Op.gte]: endTime },
+      },
     });
 
     if (!investorSlot || !pfSlot) {
-      return sendResponse(res, 400, { message: 'Meeting time is not within available slots' });
+      return sendResponse(res, 400, {
+        message: "Meeting time is not within available slots",
+      });
     }
 
     // Update the meeting
@@ -203,13 +209,12 @@ export const updateMeeting = async (req: Request, res: Response) => {
     if (updatedRowsCount > 0) {
       return sendResponse(res, 200, updatedMeetings[0]);
     } else {
-      return sendResponse(res, 404, { message: 'Meeting not found' });
+      return sendResponse(res, 404, { message: "Meeting not found" });
     }
   } catch (error) {
     handleError(res, error);
   }
 };
-
 
 export const deleteMeeting = async (req: Request, res: Response) => {
   try {
@@ -218,9 +223,9 @@ export const deleteMeeting = async (req: Request, res: Response) => {
       where: { id },
     });
     if (deletedRowsCount > 0) {
-      sendResponse(res, 200, { message: 'Meeting deleted successfully' });
+      sendResponse(res, 200, { message: "Meeting deleted successfully" });
     } else {
-      sendResponse(res, 404, { message: 'Meeting not found' });
+      sendResponse(res, 404, { message: "Meeting not found" });
     }
   } catch (error) {
     handleError(res, error);
@@ -277,8 +282,8 @@ async function scheduleMeetings(availableSlots, selectionData) {
   const scheduledMeetings = [];
   const investorMeetings = new Map();
   const pfMeetings = new Map();
-  const allInvIds = new Set(selectionData.map(s => s.InvId));
-  const allPFIds = new Set(selectionData.map(s => s.PFId));
+  const allInvIds = new Set(selectionData.map((s) => s.InvId));
+  const allPFIds = new Set(selectionData.map((s) => s.PFId));
   const leftOutPFIds = new Set(allPFIds);
 
   // Group available slots by date
@@ -295,7 +300,9 @@ async function scheduleMeetings(availableSlots, selectionData) {
 
   for (const invId of allInvIds) {
     for (const pfId of allPFIds) {
-      const selection = selectionData.find(s => s.InvId === invId && s.PFId === pfId);
+      const selection = selectionData.find(
+        (s) => s.InvId === invId && s.PFId === pfId
+      );
       if (!selection) continue;
 
       let scheduled = false;
@@ -307,7 +314,10 @@ async function scheduleMeetings(availableSlots, selectionData) {
 
         for (const slot of slotsForDate) {
           const slotKey = `${slot.date}-${slot.startTime}`;
-          if (!investorMeetings.has(`${invId}-${slotKey}`) && !pfMeetings.has(`${pfId}-${slotKey}`)) {
+          if (
+            !investorMeetings.has(`${invId}-${slotKey}`) &&
+            !pfMeetings.has(`${pfId}-${slotKey}`)
+          ) {
             scheduledMeetings.push({
               selid: selection.SelId,
               pfid: pfId,
@@ -315,7 +325,7 @@ async function scheduleMeetings(availableSlots, selectionData) {
               date: slot.date,
               starttime: slot.startTime,
               endtime: slot.endTime,
-              duration: 60
+              duration: 60,
             });
             investorMeetings.set(`${invId}-${slotKey}`, true);
             pfMeetings.set(`${pfId}-${slotKey}`, true);
@@ -339,10 +349,9 @@ async function scheduleMeetings(availableSlots, selectionData) {
 
   return {
     scheduledMeetings,
-    leftOutPFIds: Array.from(leftOutPFIds)
+    leftOutPFIds: Array.from(leftOutPFIds),
   };
 }
-
 
 interface Meeting {
   selid: number;
@@ -371,10 +380,10 @@ async function reducingConflicts(data: Meeting[], nonConflicts: Meeting[]) {
   const selectionData = await selectionsSchema.findAll({
     where: {
       SelId: {
-        [Op.in]: data.map(d => d.selid)
-      }
+        [Op.in]: data.map((d) => d.selid),
+      },
     },
-    include: ['Investor', 'PortfolioCompany']
+    include: ["Investor", "PortfolioCompany"],
   });
 
   const allviableslots = await availabilitySlotsSchema.findAll();
@@ -399,10 +408,16 @@ async function reducingConflicts(data: Meeting[], nonConflicts: Meeting[]) {
     const pfAlreadyMeet = bookedMeetings[pfId] || {};
 
     // Get available slots in investor's timezone
-    const allAvailable = allviableslots.filter(slot => slot.timezone === invTimezone);
+    const allAvailable = allviableslots.filter(
+      (slot) => slot.timezone === invTimezone
+    );
 
     // Find non-conflicting slot
-    const nonConflictingSlot = findNonConflictingSlot(allAvailable as any, invAlreadyMeet as any, pfAlreadyMeet as any);
+    const nonConflictingSlot = findNonConflictingSlot(
+      allAvailable as any,
+      invAlreadyMeet as any,
+      pfAlreadyMeet as any
+    );
 
     if (nonConflictingSlot) {
       const newMeeting: Meeting = {
@@ -412,7 +427,10 @@ async function reducingConflicts(data: Meeting[], nonConflicts: Meeting[]) {
         date: nonConflictingSlot.date,
         starttime: nonConflictingSlot.startTime,
         endtime: nonConflictingSlot.endTime,
-        duration: calculateDuration(nonConflictingSlot.startTime, nonConflictingSlot.endTime)
+        duration: calculateDuration(
+          nonConflictingSlot.startTime,
+          nonConflictingSlot.endTime
+        ),
       };
       newNonConflicts.push(newMeeting);
 
@@ -420,22 +438,28 @@ async function reducingConflicts(data: Meeting[], nonConflicts: Meeting[]) {
       addBookedMeeting(bookedMeetings, invId, newMeeting);
       addBookedMeeting(bookedMeetings, pfId, newMeeting);
     } else {
-      if (!conflicts[invId]) conflicts[invId] = {};    
-      conflicts[`${invId}-${pfId}`] = { reason: 'No available slots' };
+      if (!conflicts[invId]) conflicts[invId] = {};
+      conflicts[`${invId}-${pfId}`] = { reason: "No available slots" };
     }
   }
 
   return { conflicts, nonConflicts: newNonConflicts };
 }
 
-function addBookedMeeting(bookedMeetings: { [id: number]: BookedMeetings }, id: number, meeting: Meeting) {
+function addBookedMeeting(
+  bookedMeetings: { [id: number]: BookedMeetings },
+  id: number,
+  meeting: Meeting
+) {
   if (!bookedMeetings[id]) {
     bookedMeetings[id] = {};
   }
   if (!bookedMeetings[id][meeting.date]) {
     bookedMeetings[id][meeting.date] = [];
   }
-  bookedMeetings[id][meeting.date].push(`${meeting.starttime} to ${meeting.endtime}`);
+  bookedMeetings[id][meeting.date].push(
+    `${meeting.starttime} to ${meeting.endtime}`
+  );
 }
 
 function findNonConflictingSlot(
@@ -444,10 +468,10 @@ function findNonConflictingSlot(
   pfBookedMeetings: BookedMeetings
 ): AvailableSlot | null {
   for (const slot of availableSlots) {
-    const isConflicting = 
-      isSlotConflicting(slot, invBookedMeetings) || 
+    const isConflicting =
+      isSlotConflicting(slot, invBookedMeetings) ||
       isSlotConflicting(slot, pfBookedMeetings);
-    
+
     if (!isConflicting) {
       return slot;
     }
@@ -455,11 +479,14 @@ function findNonConflictingSlot(
   return null;
 }
 
-function isSlotConflicting(slot: AvailableSlot, bookedMeetings: BookedMeetings): boolean {
+function isSlotConflicting(
+  slot: AvailableSlot,
+  bookedMeetings: BookedMeetings
+): boolean {
   if (!bookedMeetings[slot.date]) return false;
-  
-  return bookedMeetings[slot.date].some(bookedSlot => {
-    const [bookedStart, bookedEnd] = bookedSlot.split(' to ');
+
+  return bookedMeetings[slot.date].some((bookedSlot) => {
+    const [bookedStart, bookedEnd] = bookedSlot.split(" to ");
     return (
       (slot.startTime >= bookedStart && slot.startTime < bookedEnd) ||
       (slot.endTime > bookedStart && slot.endTime <= bookedEnd) ||
@@ -474,16 +501,13 @@ function calculateDuration(startTime: string, endTime: string): number {
   return (end.getTime() - start.getTime()) / 60000; // Duration in minutes
 }
 
-
-
-
-async  function findConflicts(data) {
+async function findConflicts(data) {
   let conflicts = [];
   const nonConflicts = [];
 
   // Helper function to convert time to minutes for easier comparison
   function timeToMinutes(time) {
-    const [hours, minutes] = time.split(':').map(Number);
+    const [hours, minutes] = time.split(":").map(Number);
     return hours * 60 + minutes;
   }
 
@@ -495,7 +519,7 @@ async  function findConflicts(data) {
   // Iterate through each timezone
   for (let i = 0; i < data.length; i++) {
     const timezone1 = data[i];
-    
+
     // Compare with other timezones
     for (let j = i + 1; j < data.length; j++) {
       const timezone2 = data[j];
@@ -503,12 +527,15 @@ async  function findConflicts(data) {
       for (const slot1 of timezone1.data) {
         for (const slot2 of timezone2.data) {
           // Check if pfid or invid match and if the dates are the same
-          if ((slot1.pfid === slot2.pfid || slot1.invid === slot2.invid) && slot1.date === slot2.date) {
+          if (
+            (slot1.pfid === slot2.pfid || slot1.invid === slot2.invid) &&
+            slot1.date === slot2.date
+          ) {
             const start1 = timeToMinutes(slot1.starttime);
             const end1 = timeToMinutes(slot1.endtime);
             const start2 = timeToMinutes(slot2.starttime);
             const end2 = timeToMinutes(slot2.endtime);
-            
+
             // Check for overlap
             if (isOverlapping(start1, end1, start2, end2)) {
               conflicts.push(slot1); // conflict.push(slot2);
@@ -525,122 +552,292 @@ async  function findConflicts(data) {
     }
   }
 
- 
 
-   const newdata = await reducingConflicts(conflicts, nonConflicts);
-   if (Object.keys(newdata.conflicts).length === 0) {
-       conflicts = newdata.conflicts as any;     
-      } 
-    if (newdata.nonConflicts.length > 0) {
-        nonConflicts.push(...newdata.nonConflicts);
-      }
+  const newdata = await reducingConflicts(conflicts, nonConflicts);
+  if (Object.keys(newdata.conflicts).length === 0) {
+    conflicts = newdata.conflicts as any;
+  }
+  if (newdata.nonConflicts.length > 0) {
+    nonConflicts.push(...newdata.nonConflicts);
+  }
 
   return { conflicts, nonConflicts };
 }
 
-export const generateMeetingSchedule = async (_req: Request, res: Response) => {
-    try {
-      await meetingsSchema.destroy({
-        truncate: true
-      });
-      // await nonmeetingsSchema.destroy({
-      //   truncate: true
-      // });
-      await meetingsSchema.sequelize.query('ALTER SEQUENCE "public"."Meetings_id_seq" RESTART WITH 1');
-     // await nonmeetingsSchema.sequelize.query('ALTER SEQUENCE "public"."nonMeetings_id_seq" RESTART WITH 1');
+async function scheduleMeetingsfinal(
+  availableSlots,
+  selectionData,
+  meetingData
+) {
+  const scheduledMeetings = [];
 
+  selectionData.forEach((selection) => {
+    const { SelId, InvId, PFId } = selection;
+    const existingMeeting = meetingData.find(
+      (meeting) => meeting.SelId === SelId
+    );
+    if (existingMeeting) return; 
+
+    const investorTimezone = selection.Investor.InvTimezone;
+    const relevantSlots = availableSlots.filter(
+      (slot) => slot.timezone === investorTimezone
+    );
+
+    for (const slot of relevantSlots) {
+      const { date, startTime, endTime } = slot;
+
+      const conflict = [...meetingData, ...scheduledMeetings].find(
+        (meeting) =>
+          (meeting.Selection.InvId === InvId ||
+            meeting.Selection.PFId === PFId) &&
+          meeting.date === date &&
+          meeting.startTime === startTime &&
+          meeting.endTime === endTime
+      );
+
+      if (conflict) continue; 
+     
+      const newMeeting = {
+        id: Date.now(), 
+        SelId,
+        date,
+        startTime,
+        endTime,
+        duration: 60, 
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        Selection: {
+          SelId,
+          InvId,
+          PFId,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          Investor: selection.Investor,
+          PortfolioCompany: selection.PortfolioCompany,
+        },
+      };
+
+      scheduledMeetings.push(newMeeting);
+      break;
+    }
+  });
+  const finalmeetings = scheduledMeetings.map((meeting) => ({
+    SelId: meeting.SelId,
+    date: meeting.date,
+    startTime: meeting.startTime,
+    endTime: meeting.endTime,
+    duration: meeting.duration,
+  }));
+
+  return finalmeetings;
+}
+
+export const generateMeetingSchedule = async (_req: Request, res: Response) => {
+  try {
+    await meetingsSchema.destroy({
+      truncate: true,
+    });
+    // await nonmeetingsSchema.destroy({
+    //   truncate: true
+    // });
+    await meetingsSchema.sequelize.query(
+      'ALTER SEQUENCE "public"."Meetings_id_seq" RESTART WITH 1'
+    );
+    // await nonmeetingsSchema.sequelize.query('ALTER SEQUENCE "public"."nonMeetings_id_seq" RESTART WITH 1');
 
     const selectiondata = await selectionsSchema.findAll({
       include: [
-        { model: investorsSchema, as: 'Investor' },
-        { model: portfolioCompaniesSchema, as: 'PortfolioCompany' }
-      ]
+        { model: investorsSchema, as: "Investor" },
+        { model: portfolioCompaniesSchema, as: "PortfolioCompany" },
+      ],
     });
     const getAllAvailabilitySlots = await availabilitySlotsSchema.findAll();
-   
+
+    async function allavailableSlotsforeverytimezone(timezone) {
+      const timezoneslot = getAllAvailabilitySlots.filter(
+        (slot) => slot.timezone === timezone
+      );
+      const slectionfilter = selectiondata.filter(
+        (slot) => slot.Investor.InvTimezone === timezone
+      );
+      const stringifydata = JSON.stringify(slectionfilter);
+      const allIstslots = getAllAvailabilitySlots.filter(
+        (slot) => slot.timezone === "IST"
+      );
+
       
-        async function allavailableSlotsforeverytimezone (timezone)  {
-          const slot = getAllAvailabilitySlots.filter((slot) => slot.timezone === timezone);
-          const slectionfilter = selectiondata.filter((slot) => slot.Investor.InvTimezone === timezone);
-          const stringifydata = JSON.stringify(slectionfilter);
-        return {slot, stringifydata};
-        }
+      const slot = timezoneslot.filter((slot) =>
+        allIstslots.some(
+          (istslot) =>
+            istslot.date === slot.date &&
+            istslot.startTime === slot.startTime &&
+            istslot.endTime === slot.endTime
+        )
+
         
-        const timezone = getAllAvailabilitySlots.map((slot) => slot.timezone);
-        const uniqueTimezone = [...new Set(timezone)];
-
-        const finaldata = [];
-      
-        for (const timezone of uniqueTimezone) {
-          try {
-            const datas = await allavailableSlotsforeverytimezone(timezone);
-            const scheduledMeetings = await scheduleMeetings(datas.slot, JSON.parse(datas.stringifydata));
-            finaldata.push({
-              timezone,
-              data: scheduledMeetings.scheduledMeetings,  //[ gmt :]
-            });
-          } catch (error) {
-            console.error(`Error processing timezone ${timezone}:`, error);
-          }
-        }
-       
-        const conflicts = await findConflicts(finaldata);
-        const mappedMeetings = conflicts.nonConflicts.map(meeting => ({
-          SelId: meeting.selid,
-          date: meeting.date,
-          startTime: meeting.starttime,
-          endTime: meeting.endtime,
-          duration: meeting.duration
-        }));
-        // let nonmeetings = [];
-        // if (Object.keys(conflicts.conflicts).length !== 0) {
-        //   const mapnonmeetings = conflicts.conflicts.map(meeting => ({
-        //     SelId: meeting.selid,
-        //     date: meeting.date,
-        //     startTime: meeting.starttime,
-        //     endTime: meeting.endtime,
-        //     duration: meeting.duration
-        //   }));
-        //    nonmeetings = await nonmeetingsSchema.bulkCreate(mapnonmeetings);
-        // }
-        
-        const scheduledMeetings = await meetingsSchema.bulkCreate(mappedMeetings);
-        sendResponse(res, 201, {
-          totalmeetingsScheduled: scheduledMeetings.length,
-          scheduledMeetings : scheduledMeetings,
-        })
-
-
-    } catch (error) {
-      handleError(res, error);
+      );
+      return { slot, stringifydata };
     }
 
-}
+    const timezone = getAllAvailabilitySlots.map((slot) => slot.timezone);
+    const uniqueTimezone = [...new Set(timezone)];
 
+    const finaldata = [];
+
+    for (const timezones of uniqueTimezone) {
+      try {
+        const datas = await allavailableSlotsforeverytimezone(timezones);
+        const scheduledMeetings = await scheduleMeetings(
+          datas.slot,
+          JSON.parse(datas.stringifydata)
+        );
+        finaldata.push({
+          timezone,
+          data: scheduledMeetings.scheduledMeetings, //[ gmt :]
+        });
+      } catch (error) {
+        console.error(`Error processing timezone ${timezone}:`, error);
+      }
+    }
+    const conflicts = await findConflicts(finaldata);
+    const mappedMeetings = conflicts.nonConflicts.map((meeting) => ({
+      SelId: meeting.selid,
+      date: meeting.date,
+      startTime: meeting.starttime,
+      endTime: meeting.endtime,
+      duration: meeting.duration,
+    }));
+    // let nonmeetings = [];
+    // if (Object.keys(conflicts.conflicts).length !== 0) {
+    //   const mapnonmeetings = conflicts.conflicts.map(meeting => ({
+    //     SelId: meeting.selid,
+    //     date: meeting.date,
+    //     startTime: meeting.starttime,
+    //     endTime: meeting.endtime,
+    //     duration: meeting.duration
+    //   }));
+    //    nonmeetings = await nonmeetingsSchema.bulkCreate(mapnonmeetings);
+    // }
+
+  
+    const alluniqueISTDates = getAllAvailabilitySlots.filter(
+      (slot) => slot.timezone === "IST"
+    );
+
+    const uqDate = [...new Set(alluniqueISTDates.map((slot) => slot.date))];
+    // if any dates apart from uqDate then remove the meeting
+    const finalmeetings = mappedMeetings.filter((meeting) =>
+      uqDate.includes(meeting.date)
+    );
+
+    const uniquemeeetings = [];
+    const uniquepairs = new Set();
+    for (const meeting of finalmeetings) {
+      const pairKey = `${meeting.SelId}`;
+      if (!uniquepairs.has(pairKey)) {
+        uniquemeeetings.push(meeting);
+        uniquepairs.add(pairKey);
+      }
+    }
+
+
+    await meetingsSchema.bulkCreate(uniquemeeetings);
+
+    const getallselIDfromMeetings = await meetingsSchema.findAll();
+    const selid = getallselIDfromMeetings.map((selid) => selid.SelId);
+    const newselid = [...new Set(selid)];
+    const noslotselectiondata = await selectionsSchema.findAll({
+      where: {
+        SelId: {
+          [Op.notIn]: newselid,
+        },
+      },
+      include: [
+        { model: investorsSchema, as: "Investor" },
+        { model: portfolioCompaniesSchema, as: "PortfolioCompany" },
+      ],
+    });
+
+    const meetingsvalues = await meetingsSchema.findAll({
+      include: [
+        {
+          model: selectionsSchema,
+          include: ["Investor", "PortfolioCompany"],
+        },
+      ],
+    });
+
+    let recheckdata = [];
+
+    for (const timezones of uniqueTimezone) {
+       timezones;
+      const timezoneslot = getAllAvailabilitySlots.filter(
+        (slot) => slot.timezone === timezones
+      );
+      const slectionfilter = noslotselectiondata.filter(
+        (slot) => slot.Investor.InvTimezone === timezones
+      );
+      const stringifydata = JSON.stringify(slectionfilter);
+      const allIstslots = getAllAvailabilitySlots.filter(
+        (slot) => slot.timezone === "IST"
+      );
+      const slot = timezoneslot.filter((slot) =>
+        allIstslots.some(
+          (istslot) =>
+            istslot.date === slot.date &&
+            istslot.startTime === slot.startTime &&
+            istslot.endTime === slot.endTime
+        )
+      );
+      const finalslot = JSON.stringify(slot);
+      const meetingdata = JSON.stringify(meetingsvalues);
+      try {
+        const scheduledMeetings = await scheduleMeetingsfinal(
+          JSON.parse(finalslot),
+          JSON.parse(stringifydata),
+          JSON.parse(meetingdata)
+        );
+        
+        recheckdata.push(scheduledMeetings);
+      } catch (error) {
+        console.error(`Error processing timezone ${timezone}:`, error);
+      }
+    }
+
+    const mainmeet = recheckdata.flat();
+    console.log(mainmeet);
+    const scheduledMeetingsfinal = await meetingsSchema.bulkCreate(mainmeet);
+
+    sendResponse(res, 201, {
+      totalmeetingsScheduled: scheduledMeetingsfinal.length,
+      scheduledMeetings: scheduledMeetingsfinal,
+    });
+  } catch (error) {
+    handleError(res, error);
+  }
+};
 
 export const getUnscheduledMeetings = async (_req: Request, res: Response) => {
   try {
     const getallselIDfromMeetings = await meetingsSchema.findAll();
-   
+
     const selid = getallselIDfromMeetings.map((selid) => selid.SelId);
 
     const newselid = [...new Set(selid)];
     const selectiondata = await selectionsSchema.findAll({
       where: {
         SelId: {
-          [Op.notIn]: newselid
-        }
+          [Op.notIn]: newselid,
+        },
       },
       include: [
-        { model: investorsSchema, as: 'Investor' },
-        { model: portfolioCompaniesSchema, as: 'PortfolioCompany' }
-      ]
+        { model: investorsSchema, as: "Investor" },
+        { model: portfolioCompaniesSchema, as: "PortfolioCompany" },
+      ],
     });
-  
+
     sendResponse(res, 200, selectiondata);
   } catch (error) {
     handleError(res, error);
   }
-}
-
-
+};

@@ -115,10 +115,23 @@ export const createAvailabilitySlot = async (req: Request, res: Response) => {
       const slots = await availabilitySlotsSchema.findAll({
         where: { timezone: InvTimezone }
       });
+
+      const slotsofISt = await availabilitySlotsSchema.findAll({
+        where: { timezone: "IST" }
+      });
+
+      const finalslots = slots.filter((slot) =>
+        slotsofISt.some(
+          (istslot) =>
+            istslot.date === slot.date &&
+            istslot.startTime === slot.startTime &&
+            istslot.endTime === slot.endTime
+        )
+      );
   
       const transformedData: TransformedSchedule = {};
   
-      for (const slot of slots) {
+      for (const slot of finalslots) {
         const { date, startTime, endTime } = slot;
         const dateString = date instanceof Date ? date.toISOString().split('T')[0] : date;
   
